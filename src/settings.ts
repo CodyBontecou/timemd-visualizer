@@ -4,11 +4,18 @@ import type TimeMdPlugin from './main';
 export interface TimeMdSettings {
 	exportFolder: string;
 	autoReloadOnStartup: boolean;
+	accentColor: string;
+	heatmapColor: string;
 }
+
+export const DEFAULT_ACCENT_COLOR = '';
+export const DEFAULT_HEATMAP_COLOR = '#5865f2';
 
 export const DEFAULT_SETTINGS: TimeMdSettings = {
 	exportFolder: '',
 	autoReloadOnStartup: true,
+	accentColor: DEFAULT_ACCENT_COLOR,
+	heatmapColor: DEFAULT_HEATMAP_COLOR,
 };
 
 export class TimeMdSettingTab extends PluginSettingTab {
@@ -52,6 +59,55 @@ export class TimeMdSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName('Heatmap color')
+			.setDesc('Color used for heatmap cells and the month grid intensity fill.')
+			.addColorPicker((picker) =>
+				picker.setValue(this.plugin.settings.heatmapColor || DEFAULT_HEATMAP_COLOR).onChange(async (value) => {
+					this.plugin.settings.heatmapColor = value;
+					await this.plugin.saveSettings();
+					this.plugin.applyColorVars();
+					this.plugin.refreshAllViews();
+				}),
+			)
+			.addExtraButton((btn) =>
+				btn
+					.setIcon('rotate-ccw')
+					.setTooltip('Reset to default')
+					.onClick(async () => {
+						this.plugin.settings.heatmapColor = DEFAULT_HEATMAP_COLOR;
+						await this.plugin.saveSettings();
+						this.plugin.applyColorVars();
+						this.plugin.refreshAllViews();
+						this.display();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName('Accent color')
+			.setDesc('Color used for line charts and bar fills. Leave unset to follow the Obsidian theme accent.')
+			.addColorPicker((picker) => {
+				const current = this.plugin.settings.accentColor || readThemeAccent();
+				picker.setValue(current).onChange(async (value) => {
+					this.plugin.settings.accentColor = value;
+					await this.plugin.saveSettings();
+					this.plugin.applyColorVars();
+					this.plugin.refreshAllViews();
+				});
+			})
+			.addExtraButton((btn) =>
+				btn
+					.setIcon('rotate-ccw')
+					.setTooltip('Use theme accent')
+					.onClick(async () => {
+						this.plugin.settings.accentColor = '';
+						await this.plugin.saveSettings();
+						this.plugin.applyColorVars();
+						this.plugin.refreshAllViews();
+						this.display();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName('Reload now')
 			.setDesc('Re-scan the export folder and refresh all open views.')
 			.addButton((btn) =>
@@ -74,4 +130,14 @@ export class TimeMdSettingTab extends PluginSettingTab {
 			text: `${this.plugin.store.reports.length} report(s) currently loaded.`,
 		});
 	}
+}
+
+function readThemeAccent(): string {
+	try {
+		const v = getComputedStyle(document.body).getPropertyValue('--interactive-accent').trim();
+		if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)) return v;
+	} catch {
+		// fall through
+	}
+	return DEFAULT_HEATMAP_COLOR;
 }

@@ -1,12 +1,18 @@
 import { Plugin, TAbstractFile, WorkspaceLeaf } from 'obsidian';
 import { DataStore } from './store';
-import { DEFAULT_SETTINGS, TimeMdSettings, TimeMdSettingTab } from './settings';
+import {
+	DEFAULT_HEATMAP_COLOR,
+	DEFAULT_SETTINGS,
+	TimeMdSettings,
+	TimeMdSettingTab,
+} from './settings';
 import { OverviewView, VIEW_TYPE_OVERVIEW } from './views/overview';
 import { TrendsView, VIEW_TYPE_TRENDS } from './views/trends';
 import { CalendarView, VIEW_TYPE_CALENDAR } from './views/calendar';
 import { DetailsView, VIEW_TYPE_DETAILS } from './views/details';
 import { AppsView, VIEW_TYPE_APPS } from './views/apps';
 import { parseBlockParams, TimeMdBlock } from './embed';
+import { hexToRgb } from './utils';
 
 type ViewType =
 	| typeof VIEW_TYPE_OVERVIEW
@@ -22,6 +28,7 @@ export default class TimeMdPlugin extends Plugin {
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
+		this.applyColorVars();
 
 		this.store = new DataStore(this.app, () => this.settings.exportFolder);
 
@@ -95,6 +102,29 @@ export default class TimeMdPlugin extends Plugin {
 			window.clearTimeout(this.reloadTimer);
 			this.reloadTimer = null;
 		}
+		this.clearColorVars();
+	}
+
+	applyColorVars(): void {
+		const root = document.body;
+		const heatmapHex = this.settings.heatmapColor || DEFAULT_HEATMAP_COLOR;
+		const rgb = hexToRgb(heatmapHex) ?? { r: 88, g: 101, b: 242 };
+		root.style.setProperty('--timemd-heatmap-rgb', `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+		if (this.settings.accentColor) {
+			root.style.setProperty('--timemd-accent', this.settings.accentColor);
+		} else {
+			root.style.removeProperty('--timemd-accent');
+		}
+	}
+
+	private clearColorVars(): void {
+		const root = document.body;
+		root.style.removeProperty('--timemd-heatmap-rgb');
+		root.style.removeProperty('--timemd-accent');
+	}
+
+	refreshAllViews(): void {
+		this.store.trigger('changed');
 	}
 
 	private isInExportFolder(path: string): boolean {

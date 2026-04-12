@@ -1,5 +1,5 @@
 import { WorkspaceLeaf } from 'obsidian';
-import { renderHeatmap } from '../charts';
+import { getHeatmapRgb, renderHeatmap } from '../charts';
 import { formatDateISO, formatDuration } from '../utils';
 import { TimeMdBaseView, TimeMdHost } from './base';
 
@@ -78,6 +78,7 @@ function renderMonth(parent: HTMLElement, month: Date, data: Map<string, number>
 	const startOffset = (firstOfMonth.getDay() + 6) % 7;
 	for (let i = 0; i < startOffset; i++) daysEl.createDiv({ cls: 'timemd-month-day timemd-month-day-empty' });
 
+	const rgb = getHeatmapRgb();
 	for (let d = 1; d <= lastOfMonth.getDate(); d++) {
 		const date = new Date(month.getFullYear(), month.getMonth(), d);
 		const key = formatDateISO(date);
@@ -85,7 +86,7 @@ function renderMonth(parent: HTMLElement, month: Date, data: Map<string, number>
 		const intensity = v / max;
 		const dayEl = daysEl.createDiv({ cls: 'timemd-month-day' });
 		dayEl.setAttribute('title', `${key} — ${formatDuration(v)}`);
-		dayEl.style.background = `rgba(88, 101, 242, ${0.08 + intensity * 0.92})`;
+		dayEl.style.background = `rgba(${rgb}, ${0.08 + intensity * 0.92})`;
 		dayEl.createDiv({ cls: 'timemd-month-day-num', text: String(d) });
 	}
 }

@@ -6,6 +6,22 @@ function svg(tag: string, attrs: Record<string, string | number> = {}): SVGEleme
 	return el;
 }
 
+const DEFAULT_HEATMAP_RGB = '88, 101, 242';
+
+export function getHeatmapRgb(): string {
+	try {
+		const v = getComputedStyle(document.body).getPropertyValue('--timemd-heatmap-rgb').trim();
+		return v || DEFAULT_HEATMAP_RGB;
+	} catch {
+		return DEFAULT_HEATMAP_RGB;
+	}
+}
+
+export function heatmapFill(intensity: number): string {
+	const clamped = Math.max(0, Math.min(1, intensity));
+	return `rgba(${getHeatmapRgb()}, ${0.08 + clamped * 0.92})`;
+}
+
 export interface LineChartPoint {
 	label: string;
 	value: number;
@@ -21,7 +37,7 @@ export function renderLineChart(
 	const pad = { l: 48, r: 16, t: 16, b: 32 };
 	const innerW = width - pad.l - pad.r;
 	const innerH = height - pad.t - pad.b;
-	const color = opts.color ?? 'var(--interactive-accent)';
+	const color = opts.color ?? 'var(--timemd-accent, var(--interactive-accent))';
 
 	const root = svg('svg', { width, height, class: 'timemd-chart', viewBox: `0 0 ${width} ${height}` });
 	parent.appendChild(root);
@@ -123,6 +139,7 @@ export function renderHeatmap(
 	parent.appendChild(root);
 
 	const max = Math.max(1, ...grid.flat());
+	const rgb = getHeatmapRgb();
 
 	for (let d = 0; d < 7; d++) {
 		for (let h = 0; h < 24; h++) {
@@ -136,7 +153,7 @@ export function renderHeatmap(
 				rx: 3,
 				class: 'timemd-heatmap-cell',
 			});
-			(rect as SVGElement).setAttribute('fill', `rgba(88, 101, 242, ${0.08 + intensity * 0.92})`);
+			(rect as SVGElement).setAttribute('fill', `rgba(${rgb}, ${0.08 + intensity * 0.92})`);
 			const title = svg('title');
 			title.textContent = `${days[d]} ${h}:00 — ${fmt(v)}`;
 			rect.appendChild(title);

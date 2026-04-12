@@ -94,3 +94,17 @@ export function canonicalSectionName(raw: string): SectionName {
 export function isNumericString(s: string): boolean {
 	return /^-?\d+(\.\d+)?$/.test(s.trim());
 }
+
+export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+	const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim());
+	if (!m) return null;
+	let h = m[1]!;
+	if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+	const n = parseInt(h, 16);
+	return { r: (n >> 16) & 0xff, g: (n >> 8) & 0xff, b: n & 0xff };
+}
+
+export function rgbString(hex: string, fallback: string): string {
+	const rgb = hexToRgb(hex);
+	return rgb ? `${rgb.r}, ${rgb.g}, ${rgb.b}` : fallback;
+}
