@@ -12,10 +12,13 @@ import {
 } from './types';
 import { parseDate, stripWikiLinks } from './utils';
 
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB per file
+
 export class DataStore extends Events {
 	reports: Report[] = [];
 	lastLoadedAt: Date | null = null;
 	lastError: string | null = null;
+	skippedFiles: Array<{ path: string; reason: string }> = [];
 
 	constructor(
 		private app: App,
@@ -31,6 +34,7 @@ export class DataStore extends Events {
 	async reload(): Promise<void> {
 		const folderPath = (this.getFolder() || '').trim();
 		this.reports = [];
+		this.skippedFiles = [];
 		this.lastError = null;
 
 		if (!folderPath) {
@@ -51,20 +55,30 @@ export class DataStore extends Events {
 
 		for (const file of files) {
 			if (!isSupportedPath(file.path)) continue;
+			if (file.stat.size > MAX_FILE_SIZE_BYTES) {
+				const mb = (file.stat.size / 1024 / 1024).toFixed(1);
+				const reason = `skipped — ${mb} MB exceeds the 50 MB cap. Re-export with tighter filters or drop the Raw Sessions / Web History sections.`;
+				this.skippedFiles.push({ path: file.path, reason });
+				console.warn(`[time.md] ${file.path}: ${reason}`);
+				continue;
+			}
 			try {
 				const content = await this.app.vault.cachedRead(file);
 				const report = parseReport(file.path, content);
 				this.reports.push(report);
 			} catch (err) {
 				console.warn(`[time.md] Failed to parse ${file.path}`, err);
+				this.skippedFiles.push({ path: file.path, reason: `parse error: ${String(err)}` });
 			}
 		}
 
 		this.lastLoadedAt = new Date();
-		if (this.reports.length === 0) {
+		if (this.reports.length === 0 && this.skippedFiles.length === 0) {
 			this.lastError = `No recognizable time.md exports in ${folderPath}`;
 		}
-		new Notice(`time.md: loaded ${this.reports.length} export${this.reports.length === 1 ? '' : 's'}`);
+		const parts = [`loaded ${this.reports.length}`];
+		if (this.skippedFiles.length > 0) parts.push(`skipped ${this.skippedFiles.length}`);
+		new Notice(`time.md: ${parts.join(', ')}`);
 		this.trigger('changed');
 	}
 

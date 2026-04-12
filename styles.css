@@ -276,6 +276,34 @@
 	color: var(--text-error);
 }
 
+.timemd-skipped-banner {
+	background: var(--background-modifier-error-hover, rgba(229, 79, 79, 0.1));
+	border: 1px solid var(--text-error);
+	border-radius: 6px;
+	padding: 10px 12px;
+	margin-bottom: 12px;
+	font-size: 0.85em;
+}
+
+.timemd-skipped-title {
+	font-weight: 600;
+	color: var(--text-error);
+	margin-bottom: 4px;
+}
+
+.timemd-skipped-item {
+	color: var(--text-muted);
+}
+
+.timemd-skipped-path {
+	font-family: var(--font-monospace);
+	color: var(--text-normal);
+}
+
+.timemd-skipped-reason {
+	color: var(--text-muted);
+}
+
 .timemd-embed {
 	display: flex;
 	flex-direction: column;
