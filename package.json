@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-timemd",
-	"version": "0.2.3",
+	"version": "0.2.4",
 	"description": "Navigate and visualize data exported from the time.md screen-time analytics app.",
 	"main": "main.js",
 	"type": "module",
@@ -10,7 +10,13 @@
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"lint": "eslint ."
 	},
-	"keywords": ["obsidian", "time.md", "screen-time", "analytics", "timeprint"],
+	"keywords": [
+		"obsidian",
+		"time.md",
+		"screen-time",
+		"analytics",
+		"timeprint"
+	],
 	"license": "0-BSD",
 	"devDependencies": {
 		"@types/node": "^16.11.6",

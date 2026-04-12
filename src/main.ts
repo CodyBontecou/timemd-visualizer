@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { Plugin, TAbstractFile, WorkspaceLeaf } from 'obsidian';
 import { DataStore } from './store';
 import { DEFAULT_SETTINGS, TimeMdSettings, TimeMdSettingTab } from './settings';
 import { OverviewView, VIEW_TYPE_OVERVIEW } from './views/overview';
@@ -18,6 +18,7 @@ type ViewType =
 export default class TimeMdPlugin extends Plugin {
 	settings!: TimeMdSettings;
 	store!: DataStore;
+	private reloadTimer: number | null = null;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -72,13 +73,42 @@ export default class TimeMdPlugin extends Plugin {
 			ctx.addChild(new TimeMdBlock(el, this, params));
 		});
 
+		const onVaultChange = (file: TAbstractFile, oldPath?: string) => {
+			if (this.isInExportFolder(file.path) || (oldPath && this.isInExportFolder(oldPath))) {
+				this.scheduleReload();
+			}
+		};
+		this.registerEvent(this.app.vault.on('create', onVaultChange));
+		this.registerEvent(this.app.vault.on('modify', onVaultChange));
+		this.registerEvent(this.app.vault.on('delete', onVaultChange));
+		this.registerEvent(
+			this.app.vault.on('rename', (file, oldPath) => onVaultChange(file, oldPath)),
+		);
+
 		this.app.workspace.onLayoutReady(() => {
 			if (this.settings.autoReloadOnStartup) void this.store.reload();
 		});
 	}
 
 	onunload(): void {
-		// Leaves are automatically cleaned up by Obsidian on plugin unload.
+		if (this.reloadTimer !== null) {
+			window.clearTimeout(this.reloadTimer);
+			this.reloadTimer = null;
+		}
+	}
+
+	private isInExportFolder(path: string): boolean {
+		const folder = (this.settings.exportFolder || '').trim().replace(/\/+$/, '');
+		if (!folder) return false;
+		return path === folder || path.startsWith(folder + '/');
+	}
+
+	private scheduleReload(): void {
+		if (this.reloadTimer !== null) window.clearTimeout(this.reloadTimer);
+		this.reloadTimer = window.setTimeout(() => {
+			this.reloadTimer = null;
+			void this.store.reload();
+		}, 400);
 	}
 
 	async loadSettings(): Promise<void> {
