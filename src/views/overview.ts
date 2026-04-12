@@ -1,0 +1,55 @@
+import { WorkspaceLeaf } from 'obsidian';
+import { renderBarList, renderLineChart } from '../charts';
+import { formatDuration, formatDateISO } from '../utils';
+import { TimeMdBaseView, TimeMdHost } from './base';
+
+export const VIEW_TYPE_OVERVIEW = 'timemd-overview';
+
+export class OverviewView extends TimeMdBaseView {
+	constructor(leaf: WorkspaceLeaf, host: TimeMdHost) {
+		super(leaf, host);
+	}
+
+	getViewType(): string {
+		return VIEW_TYPE_OVERVIEW;
+	}
+
+	getDisplayText(): string {
+		return 'time.md — Overview';
+	}
+
+	renderBody(body: HTMLElement): void {
+		const store = this.host.store;
+		const totalSeconds = store.getTotalSeconds();
+		const apps = store.getApps();
+		const trend = store.getTrend();
+		const range = store.getDateRange();
+
+		const statsRow = body.createDiv({ cls: 'timemd-stats-row' });
+		addStat(statsRow, 'Total time', formatDuration(totalSeconds));
+		addStat(statsRow, 'Top app', apps[0]?.app_name ?? '—');
+		addStat(statsRow, 'Tracked apps', String(apps.length));
+		addStat(statsRow, 'Date range', range ? `${formatDateISO(range.start)} → ${formatDateISO(range.end)}` : '—');
+
+		const trendCard = body.createDiv({ cls: 'timemd-card' });
+		trendCard.createEl('h3', { text: 'Trend' });
+		renderLineChart(
+			trendCard,
+			trend.map((t) => ({ label: formatDateISO(t.date).slice(5), value: t.total_seconds })),
+		);
+
+		const topAppsCard = body.createDiv({ cls: 'timemd-card' });
+		topAppsCard.createEl('h3', { text: 'Top apps' });
+		renderBarList(
+			topAppsCard,
+			apps.slice(0, 10).map((a) => ({ label: a.app_name, value: a.total_seconds })),
+			{ formatValue: formatDuration },
+		);
+	}
+}
+
+function addStat(row: HTMLElement, label: string, value: string): void {
+	const stat = row.createDiv({ cls: 'timemd-stat' });
+	stat.createDiv({ cls: 'timemd-stat-label', text: label });
+	stat.createDiv({ cls: 'timemd-stat-value', text: value });
+}
