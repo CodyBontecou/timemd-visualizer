@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-timemd",
-	"version": "0.2.6",
+	"version": "0.2.7",
 	"description": "Navigate and visualize data exported from the time.md screen-time analytics app.",
 	"main": "main.js",
 	"type": "module",
