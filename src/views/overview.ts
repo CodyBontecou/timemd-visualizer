@@ -1,5 +1,5 @@
 import { WorkspaceLeaf } from 'obsidian';
-import { renderBarList, renderLineChart } from '../charts';
+import { renderBarList, renderHeatmap, renderLineChart } from '../charts';
 import { formatDuration, formatDateISO } from '../utils';
 import { TimeMdBaseView, TimeMdHost } from './base';
 
@@ -30,6 +30,7 @@ export class OverviewView extends TimeMdBaseView {
 		const totalSeconds = store.getTotalSeconds();
 		const apps = store.getApps();
 		const trend = store.getTrend();
+		const heatmap = store.getHeatmap();
 		const range = store.getDateRange();
 
 		const statsRow = body.createDiv({ cls: 'timemd-stats-row' });
@@ -45,6 +46,24 @@ export class OverviewView extends TimeMdBaseView {
 			trend.map((t) => ({ label: formatDateISO(t.date).slice(5), value: t.total_seconds })),
 		);
 
+		const heatCard = body.createDiv({ cls: 'timemd-card' });
+		heatCard.createEl('h3', { text: 'Weekly heatmap' });
+		if (heatmap.length === 0) {
+			heatCard.createDiv({
+				cls: 'timemd-empty-inline',
+				text: 'No heatmap section in the loaded exports.',
+			});
+		} else {
+			const grid: number[][] = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+			for (const cell of heatmap) {
+				const d = clamp(cell.weekday - 1, 0, 6);
+				const h = clamp(cell.hour, 0, 23);
+				const row = grid[d]!;
+				row[h] = (row[h] ?? 0) + cell.total_seconds;
+			}
+			renderHeatmap(heatCard, grid, { formatValue: formatDuration });
+		}
+
 		const topAppsCard = body.createDiv({ cls: 'timemd-card' });
 		topAppsCard.createEl('h3', { text: 'Top apps' });
 		renderBarList(
@@ -53,6 +72,10 @@ export class OverviewView extends TimeMdBaseView {
 			{ formatValue: formatDuration },
 		);
 	}
+}
+
+function clamp(n: number, min: number, max: number): number {
+	return Math.max(min, Math.min(max, n));
 }
 
 function addStat(row: HTMLElement, label: string, value: string): void {
