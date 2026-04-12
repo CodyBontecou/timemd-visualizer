@@ -267,3 +267,79 @@
 .timemd-warning {
 	color: var(--text-error);
 }
+
+.timemd-embed {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px 14px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	margin: 8px 0;
+}
+
+.timemd-embed-title {
+	margin: 0 0 4px 0;
+	font-size: 0.95em;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.timemd-embed-empty {
+	color: var(--text-muted);
+	font-size: 0.9em;
+	padding: 8px 0;
+}
+
+.timemd-embed-chart,
+.timemd-embed-bars {
+	margin-top: 4px;
+}
+
+.timemd-stat-card {
+	padding: 16px 18px;
+	background: var(--background-primary-alt);
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+}
+
+.timemd-stat-value-large {
+	font-size: 2em;
+	font-weight: 700;
+	margin-top: 6px;
+	color: var(--text-normal);
+}
+
+.timemd-session-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.timemd-session-item {
+	font-size: 0.88em;
+	padding: 4px 6px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.timemd-session-item:last-child {
+	border-bottom: none;
+}
+
+.timemd-session-app {
+	font-weight: 600;
+}
+
+.timemd-session-sep {
+	color: var(--text-muted);
+}
+
+.timemd-session-duration {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}

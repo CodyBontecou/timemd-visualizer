@@ -25,6 +25,69 @@ The plugin auto-detects and parses every format time.md can export:
 
 Open any view from the command palette (`time.md: Open Overview`, etc.) or the ribbon icon.
 
+## Embedding into notes
+
+Drop a `timemd` code block into any note to render a live widget that updates whenever you reload exports:
+
+````markdown
+```timemd
+view: overview
+```
+````
+
+### Supported views
+
+| `view` | Renders |
+|--------|---------|
+| `overview` | Stats strip, trend sparkline, top apps (default) |
+| `stat` | One big number — configure with `metric:` |
+| `trends`, `trend-chart` | Daily line chart |
+| `calendar`, `heatmap` | 7×24 weekly heatmap |
+| `apps`, `top-apps` | App bar list |
+| `categories` | Category bar list |
+| `details` | Recent sessions list |
+
+### Parameters
+
+| key | applies to | default | description |
+|-----|------------|---------|-------------|
+| `view` | all | `overview` | widget type (see table above) |
+| `limit` | `overview`, `top-apps`, `categories`, `details` | varies | number of items shown |
+| `days` | `overview`, `trend-chart` | all | restrict to last N days of trend data |
+| `metric` | `stat` | `total_time` | `total_time`, `top_app`, `apps_count`, `days`, `peak_day` |
+| `title` | all | — | optional heading |
+
+### Examples
+
+Dashboard stat card for a daily note:
+
+````markdown
+```timemd
+view: stat
+metric: total_time
+title: Screen time today
+```
+````
+
+Last 7 days of trend:
+
+````markdown
+```timemd
+view: trend-chart
+days: 7
+title: Last week
+```
+````
+
+Top 5 apps:
+
+````markdown
+```timemd
+view: top-apps
+limit: 5
+```
+````
+
 ## Setup
 
 1. Install the plugin (see "Manually installing" below while it's pre-release).

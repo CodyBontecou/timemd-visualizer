@@ -6,6 +6,7 @@ import { TrendsView, VIEW_TYPE_TRENDS } from './views/trends';
 import { CalendarView, VIEW_TYPE_CALENDAR } from './views/calendar';
 import { DetailsView, VIEW_TYPE_DETAILS } from './views/details';
 import { AppsView, VIEW_TYPE_APPS } from './views/apps';
+import { parseBlockParams, TimeMdBlock } from './embed';
 
 type ViewType =
 	| typeof VIEW_TYPE_OVERVIEW
@@ -65,6 +66,11 @@ export default class TimeMdPlugin extends Plugin {
 		});
 
 		this.addSettingTab(new TimeMdSettingTab(this.app, this));
+
+		this.registerMarkdownCodeBlockProcessor('timemd', (source, el, ctx) => {
+			const params = parseBlockParams(source);
+			ctx.addChild(new TimeMdBlock(el, this, params));
+		});
 
 		this.app.workspace.onLayoutReady(() => {
 			if (this.settings.autoReloadOnStartup) void this.store.reload();
