@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-timemd",
 	"name": "time.md",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"minAppVersion": "1.4.0",
 	"description": "Navigate and visualize data exported from the time.md screen-time analytics app.",
 	"author": "Cody Bontecou",

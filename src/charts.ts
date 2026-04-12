@@ -35,7 +35,8 @@ export function renderLineChart(
 
 	const maxY = Math.max(1, ...data.map((d) => d.value));
 	const step = data.length > 1 ? innerW / (data.length - 1) : 0;
-	const xAt = (i: number) => pad.l + i * step;
+	const xAt = (i: number) =>
+		data.length === 1 ? pad.l + innerW / 2 : pad.l + i * step;
 	const yAt = (v: number) => pad.t + (1 - v / maxY) * innerH;
 
 	for (let i = 0; i <= 4; i++) {

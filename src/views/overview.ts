@@ -3,6 +3,13 @@ import { renderBarList, renderLineChart } from '../charts';
 import { formatDuration, formatDateISO } from '../utils';
 import { TimeMdBaseView, TimeMdHost } from './base';
 
+function formatRange(range: { start: Date; end: Date } | null): string {
+	if (!range) return '—';
+	const start = formatDateISO(range.start);
+	const end = formatDateISO(range.end);
+	return start === end ? start : `${start} → ${end}`;
+}
+
 export const VIEW_TYPE_OVERVIEW = 'timemd-overview';
 
 export class OverviewView extends TimeMdBaseView {
@@ -29,7 +36,7 @@ export class OverviewView extends TimeMdBaseView {
 		addStat(statsRow, 'Total time', formatDuration(totalSeconds));
 		addStat(statsRow, 'Top app', apps[0]?.app_name ?? '—');
 		addStat(statsRow, 'Tracked apps', String(apps.length));
-		addStat(statsRow, 'Date range', range ? `${formatDateISO(range.start)} → ${formatDateISO(range.end)}` : '—');
+		addStat(statsRow, 'Date range', formatRange(range));
 
 		const trendCard = body.createDiv({ cls: 'timemd-card' });
 		trendCard.createEl('h3', { text: 'Trend' });

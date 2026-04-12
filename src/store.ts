@@ -10,7 +10,7 @@ import {
 	SessionRow,
 	TrendPoint,
 } from './types';
-import { parseDate } from './utils';
+import { parseDate, stripWikiLinks } from './utils';
 
 export class DataStore extends Events {
 	reports: Report[] = [];
@@ -80,7 +80,7 @@ export class DataStore extends Events {
 		const map = new Map<string, AppRow>();
 		for (const section of this.allSections('apps')) {
 			for (const row of section.rows) {
-				const name = String(row['app_name'] ?? '');
+				const name = cleanName(row['app_name']);
 				if (!name) continue;
 				const existing = map.get(name) ?? { app_name: name, total_seconds: 0, session_count: 0 };
 				existing.total_seconds += toNumber(row['total_seconds']);
@@ -95,7 +95,7 @@ export class DataStore extends Events {
 		const map = new Map<string, CategoryRow>();
 		for (const section of this.allSections('categories')) {
 			for (const row of section.rows) {
-				const name = String(row['category'] ?? '');
+				const name = cleanName(row['category']);
 				if (!name) continue;
 				const existing = map.get(name) ?? { category: name, total_seconds: 0 };
 				existing.total_seconds += toNumber(row['total_seconds']);
@@ -143,7 +143,7 @@ export class DataStore extends Events {
 				const end = parseDate(row['end_time']);
 				if (!start || !end) continue;
 				out.push({
-					app_name: String(row['app_name'] ?? ''),
+					app_name: cleanName(row['app_name']),
 					start_time: start,
 					end_time: end,
 					duration_seconds: toNumber(row['duration_seconds']),
@@ -178,5 +178,10 @@ function toNumber(v: Row[string] | undefined): number {
 		return Number.isFinite(n) ? n : 0;
 	}
 	return 0;
+}
+
+function cleanName(v: Row[string] | undefined): string {
+	if (v == null) return '';
+	return stripWikiLinks(String(v)).trim();
 }
 

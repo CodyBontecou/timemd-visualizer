@@ -69,6 +69,8 @@
 	border-radius: 8px;
 	padding: 12px 14px;
 	border: 1px solid var(--background-modifier-border);
+	min-width: 0;
+	overflow: hidden;
 }
 
 .timemd-stat-label {
@@ -76,12 +78,18 @@
 	font-size: 0.8em;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .timemd-stat-value {
 	font-size: 1.3em;
 	font-weight: 600;
 	margin-top: 4px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .timemd-card {

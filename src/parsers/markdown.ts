@@ -84,7 +84,7 @@ export function parseMarkdownBody(
 function parseTable(
 	lines: string[],
 	start: number,
-	format: 'markdown' | 'obsidian',
+	_format: 'markdown' | 'obsidian',
 ): { headers: string[]; rows: Row[]; nextIndex: number } | null {
 	const headerLine = lines[start];
 	const sepLine = lines[start + 1];
@@ -101,7 +101,7 @@ function parseTable(
 		const row: Row = {};
 		headers.forEach((h, j) => {
 			let v = cells[j] ?? '';
-			if (format === 'obsidian') v = stripWikiLinks(v);
+			v = stripWikiLinks(v);
 			v = v.replace(/\\\|/g, '|').trim();
 			row[h] = coerceNumber(v);
 		});

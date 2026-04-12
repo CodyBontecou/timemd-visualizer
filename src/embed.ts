@@ -137,11 +137,13 @@ function renderOverview(el: HTMLElement, store: DataStore, params: BlockParams):
 	addStat(statsRow, 'Top app', apps[0]?.app_name ?? '—');
 	addStat(statsRow, 'Apps', String(apps.length));
 	const range = store.getDateRange();
-	addStat(
-		statsRow,
-		'Range',
-		range ? `${formatDateISO(range.start)} → ${formatDateISO(range.end)}` : '—',
-	);
+	let rangeText = '—';
+	if (range) {
+		const start = formatDateISO(range.start);
+		const end = formatDateISO(range.end);
+		rangeText = start === end ? start : `${start} → ${end}`;
+	}
+	addStat(statsRow, 'Range', rangeText);
 
 	const trend = filterDays(store.getTrend(), params.days);
 	if (trend.length > 0) {
