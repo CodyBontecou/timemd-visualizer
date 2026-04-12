@@ -43,7 +43,14 @@ export function coerceNumber(value: unknown): number | string {
 }
 
 export function stripWikiLinks(value: string): string {
-	return value.replace(/\[\[(?:[^\]|]*\|)?([^\]]+)\]\]/g, '$1');
+	let out = value.replace(/\[\[([^\]]*?)\]\]/g, (_, inner: string) => displayText(inner));
+	out = out.replace(/\[\[([^\]\n]*)/g, (_, inner: string) => displayText(inner));
+	return out;
+}
+
+function displayText(inner: string): string {
+	const idx = inner.lastIndexOf('|');
+	return idx >= 0 ? inner.slice(idx + 1).trim() : inner.trim();
 }
 
 export function stripLeadingEmoji(text: string): string {

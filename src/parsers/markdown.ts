@@ -97,7 +97,8 @@ function parseTable(
 	while (i < lines.length) {
 		const l = lines[i] ?? '';
 		if (!l.trim().startsWith('|')) break;
-		const cells = splitPipes(l);
+		const rawCells = splitPipes(l);
+		const cells = repairWikiLinkCells(rawCells, headers.length);
 		const row: Row = {};
 		headers.forEach((h, j) => {
 			let v = cells[j] ?? '';
@@ -109,6 +110,34 @@ function parseTable(
 		i++;
 	}
 	return { headers, rows, nextIndex: i };
+}
+
+/**
+ * time.md's markdown exporter doesn't escape `|` inside `[[wiki|links]]`, and
+ * sometimes truncates them mid-link. The naive pipe split produces extra cells
+ * whenever a link was present. This merges those extras back using `|` so the
+ * row re-aligns with the header count.
+ */
+function repairWikiLinkCells(cells: string[], expectedCount: number): string[] {
+	if (cells.length <= expectedCount) return cells;
+	const out = [...cells];
+	let safety = out.length;
+	while (out.length > expectedCount && safety-- > 0) {
+		let merged = false;
+		for (let i = 0; i < out.length - 1; i++) {
+			const cell = out[i]!;
+			const opens = (cell.match(/\[\[/g) ?? []).length;
+			const closes = (cell.match(/\]\]/g) ?? []).length;
+			if (opens > closes) {
+				out[i] = `${cell}|${out[i + 1]}`;
+				out.splice(i + 1, 1);
+				merged = true;
+				break;
+			}
+		}
+		if (!merged) break;
+	}
+	return out;
 }
 
 function splitPipes(line: string): string[] {
