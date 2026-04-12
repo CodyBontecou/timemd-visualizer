@@ -155,6 +155,19 @@ function renderOverview(el: HTMLElement, store: DataStore, params: BlockParams):
 		);
 	}
 
+	const heatmap = store.getHeatmap();
+	if (heatmap.length > 0) {
+		const heatWrap = el.createDiv({ cls: 'timemd-embed-heatmap' });
+		const grid: number[][] = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+		for (const cell of heatmap) {
+			const d = Math.max(0, Math.min(6, cell.weekday - 1));
+			const h = Math.max(0, Math.min(23, cell.hour));
+			const row = grid[d]!;
+			row[h] = (row[h] ?? 0) + cell.total_seconds;
+		}
+		renderHeatmap(heatWrap, grid, { formatValue: formatDuration });
+	}
+
 	const limit = params.limit ?? 5;
 	if (apps.length > 0) {
 		const barsWrap = el.createDiv({ cls: 'timemd-embed-bars' });
