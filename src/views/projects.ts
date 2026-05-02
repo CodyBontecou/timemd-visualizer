@@ -82,11 +82,15 @@ function describeArc(
 	return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`;
 }
 
+interface DonutHandle {
+	onHover(cb: (category: CategoryRow | null) => void): void;
+}
+
 function renderDonut(
 	parent: HTMLElement,
 	categories: CategoryRow[],
 	totalSeconds: number,
-): void {
+): DonutHandle {
 	const size = 220;
 	const cx = size / 2;
 	const cy = size / 2;
@@ -101,6 +105,28 @@ function renderDonut(
 	});
 	parent.appendChild(root);
 
+	const labelText = svgEl('text', {
+		x: cx,
+		y: cy - 12,
+		'text-anchor': 'middle',
+		class: 'timemd-projects-donut-center-label',
+	});
+	labelText.textContent = 'TOTAL';
+	const valueText = svgEl('text', {
+		x: cx,
+		y: cy + 10,
+		'text-anchor': 'middle',
+		class: 'timemd-projects-donut-center-value',
+	});
+	valueText.textContent = formatDuration(totalSeconds);
+	const pctText = svgEl('text', {
+		x: cx,
+		y: cy + 30,
+		'text-anchor': 'middle',
+		class: 'timemd-projects-donut-center-pct',
+	});
+	pctText.textContent = '';
+
 	if (totalSeconds <= 0 || categories.length === 0) {
 		const ring = svgEl('circle', {
 			cx,
@@ -111,8 +137,28 @@ function renderDonut(
 			'stroke-width': strokeWidth,
 		});
 		root.appendChild(ring);
-		return;
+		root.appendChild(labelText);
+		root.appendChild(valueText);
+		root.appendChild(pctText);
+		return { onHover: () => {} };
 	}
+
+	const listeners: Array<(c: CategoryRow | null) => void> = [];
+	const setHover = (cat: CategoryRow | null): void => {
+		if (cat) {
+			root.classList.add('is-hovering');
+			labelText.textContent = cat.category.toUpperCase();
+			valueText.textContent = formatDuration(cat.total_seconds);
+			const pct = totalSeconds > 0 ? (cat.total_seconds / totalSeconds) * 100 : 0;
+			pctText.textContent = pct >= 10 ? `${pct.toFixed(0)}%` : `${pct.toFixed(1)}%`;
+		} else {
+			root.classList.remove('is-hovering');
+			labelText.textContent = 'TOTAL';
+			valueText.textContent = formatDuration(totalSeconds);
+			pctText.textContent = '';
+		}
+		for (const cb of listeners) cb(cat);
+	};
 
 	let acc = 0;
 	const TWO_PI = Math.PI * 2;
@@ -130,13 +176,32 @@ function renderDonut(
 			stroke: colorFor(cat.category),
 			'stroke-width': strokeWidth,
 			'stroke-linecap': 'butt',
+			class: 'timemd-projects-donut-slice',
 		});
 		const title = svgEl('title');
 		title.textContent = `${cat.category}: ${formatDuration(cat.total_seconds)}`;
 		path.appendChild(title);
+		path.addEventListener('mouseenter', () => {
+			path.classList.add('is-hover');
+			setHover(cat);
+		});
+		path.addEventListener('mouseleave', () => {
+			path.classList.remove('is-hover');
+			setHover(null);
+		});
 		root.appendChild(path);
 		acc += sweep;
 	}
+
+	root.appendChild(labelText);
+	root.appendChild(valueText);
+	root.appendChild(pctText);
+
+	return {
+		onHover: (cb) => {
+			listeners.push(cb);
+		},
+	};
 }
 
 function renderProjectsContent(
@@ -324,28 +389,40 @@ function renderDistributionCards(
 	categories: CategoryRow[],
 	totalApps: number,
 	totalSeconds: number,
-	opts: { showStats?: boolean } = {},
+	opts: { showStats?: boolean; showLegend?: boolean; showLabel?: boolean } = {},
 ): void {
 	const distCard = parent.createDiv({ cls: 'timemd-projects-card' });
-	distCard.createDiv({
-		cls: 'timemd-projects-section-label',
-		text: 'DISTRIBUTION',
-	});
-	const donutWrap = distCard.createDiv({ cls: 'timemd-projects-donut-wrap' });
-	renderDonut(donutWrap, categories, totalSeconds);
-
-	const legend = distCard.createDiv({ cls: 'timemd-projects-legend' });
-	for (const cat of categories) {
-		const item = legend.createDiv({ cls: 'timemd-projects-legend-item' });
-		const dot = item.createSpan({ cls: 'timemd-projects-dot' });
-		(dot as HTMLElement).style.background = colorFor(cat.category);
-		item.createSpan({
-			cls: 'timemd-projects-legend-name',
-			text: cat.category,
+	if (opts.showLabel !== false) {
+		distCard.createDiv({
+			cls: 'timemd-projects-section-label',
+			text: 'DISTRIBUTION',
 		});
-		item.createSpan({
-			cls: 'timemd-projects-legend-time',
-			text: formatDuration(cat.total_seconds),
+	}
+	const donutWrap = distCard.createDiv({ cls: 'timemd-projects-donut-wrap' });
+	const donut = renderDonut(donutWrap, categories, totalSeconds);
+
+	if (opts.showLegend !== false) {
+		const legend = distCard.createDiv({ cls: 'timemd-projects-legend' });
+		const itemByCategory = new Map<string, HTMLElement>();
+		for (const cat of categories) {
+			const item = legend.createDiv({ cls: 'timemd-projects-legend-item' });
+			const dot = item.createSpan({ cls: 'timemd-projects-dot' });
+			(dot as HTMLElement).style.background = colorFor(cat.category);
+			item.createSpan({
+				cls: 'timemd-projects-legend-name',
+				text: cat.category,
+			});
+			item.createSpan({
+				cls: 'timemd-projects-legend-time',
+				text: formatDuration(cat.total_seconds),
+			});
+			itemByCategory.set(cat.category, item);
+		}
+		donut.onHover((cat) => {
+			for (const [name, item] of itemByCategory) {
+				item.classList.toggle('is-active', cat?.category === name);
+				item.classList.toggle('is-dim', cat !== null && cat.category !== name);
+			}
 		});
 	}
 
@@ -366,7 +443,7 @@ function renderDistributionCards(
 export function renderDistributionEmbed(
 	el: HTMLElement,
 	store: DataStore,
-	opts?: { stats?: boolean },
+	opts?: { stats?: boolean; legend?: boolean; label?: boolean },
 ): void {
 	el.addClass('timemd-projects');
 	const wrap = el.createDiv({ cls: 'timemd-projects-distribution-embed' });
@@ -380,6 +457,8 @@ export function renderDistributionEmbed(
 	}
 	renderDistributionCards(wrap, categories, store.getApps().length, store.getTotalSeconds(), {
 		showStats: opts?.stats !== false,
+		showLegend: opts?.legend !== false,
+		showLabel: opts?.label !== false,
 	});
 }
 

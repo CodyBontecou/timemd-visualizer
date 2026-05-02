@@ -50,6 +50,8 @@ export interface BlockParams {
 	groupBy?: ReportsGroupBy;
 	format?: ReportsFormat;
 	stats?: boolean;
+	legend?: boolean;
+	label?: boolean;
 }
 
 const WEB_HISTORY_TABS: WebHistoryTab[] = ['timeline', 'domains', 'activity'];
@@ -151,6 +153,18 @@ export function parseBlockParams(source: string): BlockParams {
 				else if (v === 'false' || v === 'no' || v === '0') params.stats = false;
 				break;
 			}
+			case 'legend': {
+				const v = value.toLowerCase();
+				if (v === 'true' || v === 'yes' || v === '1') params.legend = true;
+				else if (v === 'false' || v === 'no' || v === '0') params.legend = false;
+				break;
+			}
+			case 'label': {
+				const v = value.toLowerCase();
+				if (v === 'true' || v === 'yes' || v === '1') params.label = true;
+				else if (v === 'false' || v === 'no' || v === '0') params.label = false;
+				break;
+			}
 		}
 	}
 	return params;
@@ -218,7 +232,11 @@ export function renderEmbed(el: HTMLElement, store: DataStore, params: BlockPara
 			renderProjectsEmbed(el, store, { limit: params.limit });
 			return;
 		case 'distribution':
-			renderDistributionEmbed(el, store, { stats: params.stats });
+			renderDistributionEmbed(el, store, {
+				stats: params.stats,
+				legend: params.legend,
+				label: params.label,
+			});
 			return;
 		case 'web-history':
 			renderWebHistoryEmbed(el, store, {

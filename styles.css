@@ -613,6 +613,54 @@
 	display: block;
 }
 
+.timemd-projects-donut-slice {
+	cursor: pointer;
+	transition: opacity 0.15s ease;
+}
+
+.timemd-projects-donut.is-hovering .timemd-projects-donut-slice {
+	opacity: 0.3;
+}
+
+.timemd-projects-donut.is-hovering .timemd-projects-donut-slice.is-hover {
+	opacity: 1;
+}
+
+.timemd-projects-donut-center-label {
+	fill: var(--text-muted);
+	font-size: 11px;
+	font-family: var(--font-interface);
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.timemd-projects-donut-center-value {
+	fill: var(--text-normal);
+	font-size: 20px;
+	font-weight: 700;
+	font-family: var(--font-interface);
+	font-variant-numeric: tabular-nums;
+}
+
+.timemd-projects-donut-center-pct {
+	fill: var(--text-muted);
+	font-size: 11px;
+	font-family: var(--font-interface);
+	font-variant-numeric: tabular-nums;
+}
+
+.timemd-projects-legend-item {
+	transition: opacity 0.15s ease;
+}
+
+.timemd-projects-legend-item.is-dim {
+	opacity: 0.4;
+}
+
+.timemd-projects-legend-item.is-active {
+	opacity: 1;
+}
+
 .timemd-projects-legend {
 	display: flex;
 	flex-direction: column;

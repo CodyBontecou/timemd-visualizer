@@ -67,6 +67,8 @@ view: overview
 | `tab` | `web-history` | `timeline` | `timeline`, `domains`, or `activity` |
 | `browser` | `web-history` | — | filter to a single browser (`Safari`, `Chrome`, `Arc`, …) |
 | `stats` | `distribution` | `true` | `false` to hide the STATS card |
+| `legend` | `distribution` | `true` | `false` to hide the legend list (donut-only) |
+| `label` | `distribution` | `true` | `false` to hide the "DISTRIBUTION" label |
 | `groupBy` | `reports` | `app` | `app`, `category`, or `day` |
 | `format` | `reports` | `csv` | `csv`, `json`, or `markdown` (used by the in-view Export button) |
 | `title` | all | — | optional heading |
