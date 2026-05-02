@@ -22,6 +22,9 @@ The plugin auto-detects and parses every format time.md can export:
 | Calendar | Month grid + 7×24 usage heatmap |
 | Details | Filterable raw-session table |
 | Apps & Categories | Aggregated apps and user-defined categories |
+| Projects | Category groups with donut distribution chart and stats |
+| Web History | Browser history timeline, top domains, hourly activity |
+| Reports | Daily / weekday breakdowns with CSV / JSON / Markdown export |
 
 Open any view from the command palette (`time.md: Open Overview`, etc.) or the ribbon icon.
 
@@ -46,6 +49,9 @@ view: overview
 | `apps`, `top-apps` | App bar list |
 | `categories` | Category bar list |
 | `details` | Recent sessions list |
+| `projects` | Categories list + distribution donut + stats |
+| `web-history` | Browser history (timeline / domains / activity tab) |
+| `reports` | Time distribution + weekday averages + report data table |
 
 ### Parameters
 
@@ -57,6 +63,10 @@ view: overview
 | `metric` | `stat` | `total_time` | `total_time`, `top_app`, `apps_count`, `days`, `peak_day` |
 | `sections` | `overview` | all | comma-separated list of `stats`, `trend`, `heatmap`, `apps` |
 | `date` | `overview` | — | `today`, `yesterday`, or `YYYY-MM-DD` — filters every panel to that single day (requires Raw Sessions in the export) |
+| `tab` | `web-history` | `timeline` | `timeline`, `domains`, or `activity` |
+| `browser` | `web-history` | — | filter to a single browser (`Safari`, `Chrome`, `Arc`, …) |
+| `groupBy` | `reports` | `app` | `app`, `category`, or `day` |
+| `format` | `reports` | `csv` | `csv`, `json`, or `markdown` (used by the in-view Export button) |
 | `title` | all | — | optional heading |
 
 ### Examples

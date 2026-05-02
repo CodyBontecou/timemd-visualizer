@@ -11,6 +11,9 @@ import { TrendsView, VIEW_TYPE_TRENDS } from './views/trends';
 import { CalendarView, VIEW_TYPE_CALENDAR } from './views/calendar';
 import { DetailsView, VIEW_TYPE_DETAILS } from './views/details';
 import { AppsView, VIEW_TYPE_APPS } from './views/apps';
+import { ProjectsView, VIEW_TYPE_PROJECTS } from './views/projects';
+import { WebHistoryView, VIEW_TYPE_WEB_HISTORY } from './views/webHistory';
+import { ReportsView, VIEW_TYPE_REPORTS } from './views/reports';
 import { parseBlockParams, TimeMdBlock } from './embed';
 import { hexToRgb } from './utils';
 
@@ -19,7 +22,10 @@ type ViewType =
 	| typeof VIEW_TYPE_TRENDS
 	| typeof VIEW_TYPE_CALENDAR
 	| typeof VIEW_TYPE_DETAILS
-	| typeof VIEW_TYPE_APPS;
+	| typeof VIEW_TYPE_APPS
+	| typeof VIEW_TYPE_PROJECTS
+	| typeof VIEW_TYPE_WEB_HISTORY
+	| typeof VIEW_TYPE_REPORTS;
 
 export default class TimeMdPlugin extends Plugin {
 	settings!: TimeMdSettings;
@@ -37,6 +43,9 @@ export default class TimeMdPlugin extends Plugin {
 		this.registerView(VIEW_TYPE_CALENDAR, (leaf) => new CalendarView(leaf, this));
 		this.registerView(VIEW_TYPE_DETAILS, (leaf) => new DetailsView(leaf, this));
 		this.registerView(VIEW_TYPE_APPS, (leaf) => new AppsView(leaf, this));
+		this.registerView(VIEW_TYPE_PROJECTS, (leaf) => new ProjectsView(leaf, this));
+		this.registerView(VIEW_TYPE_WEB_HISTORY, (leaf) => new WebHistoryView(leaf, this));
+		this.registerView(VIEW_TYPE_REPORTS, (leaf) => new ReportsView(leaf, this));
 
 		this.addRibbonIcon('clock-3', 'time.md: Open Overview', () => {
 			void this.activateView(VIEW_TYPE_OVERVIEW);
@@ -66,6 +75,21 @@ export default class TimeMdPlugin extends Plugin {
 			id: 'open-apps',
 			name: 'Open Apps & Categories',
 			callback: () => void this.activateView(VIEW_TYPE_APPS),
+		});
+		this.addCommand({
+			id: 'open-projects',
+			name: 'Open Projects',
+			callback: () => void this.activateView(VIEW_TYPE_PROJECTS),
+		});
+		this.addCommand({
+			id: 'open-web-history',
+			name: 'Open Web History',
+			callback: () => void this.activateView(VIEW_TYPE_WEB_HISTORY),
+		});
+		this.addCommand({
+			id: 'open-reports',
+			name: 'Open Reports',
+			callback: () => void this.activateView(VIEW_TYPE_REPORTS),
 		});
 		this.addCommand({
 			id: 'reload-exports',

@@ -1,0 +1,278 @@
+/* Projects view — recreates the time.md desktop "Projects" tab */
+
+.timemd-projects {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.timemd-projects-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.timemd-projects-titlewrap {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.timemd-projects-title {
+	margin: 0;
+	font-size: 1.6em;
+	font-weight: 700;
+	color: var(--text-normal);
+	letter-spacing: -0.01em;
+}
+
+.timemd-projects-subtitle {
+	color: var(--text-muted);
+	font-size: 0.78em;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.timemd-projects-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.timemd-projects-search {
+	flex: 1;
+	max-width: 460px;
+	padding: 7px 12px;
+	border-radius: 6px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	font-size: 0.9em;
+}
+
+.timemd-projects-search:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+}
+
+.timemd-projects-expand-btn {
+	background: transparent;
+	border: none;
+	color: var(--text-muted);
+	font-size: 0.85em;
+	cursor: pointer;
+	padding: 6px 8px;
+	border-radius: 4px;
+}
+
+.timemd-projects-expand-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.timemd-projects-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+	gap: 24px;
+	align-items: start;
+}
+
+@media (max-width: 720px) {
+	.timemd-projects-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+.timemd-projects-section-label {
+	color: var(--text-muted);
+	font-size: 0.75em;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	font-weight: 600;
+	margin-bottom: 10px;
+}
+
+.timemd-projects-list {
+	display: flex;
+	flex-direction: column;
+}
+
+.timemd-projects-row {
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.timemd-projects-row:last-child {
+	border-bottom: none;
+}
+
+.timemd-projects-row-header {
+	display: grid;
+	grid-template-columns:
+		16px /* caret */
+		12px /* color dot */
+		20px /* folder */
+		minmax(120px, 1.4fr) /* category name */
+		minmax(0, 1fr) /* bar */
+		auto /* time */
+		auto; /* pct */
+	gap: 10px;
+	align-items: center;
+	padding: 10px 6px;
+	cursor: pointer;
+	user-select: none;
+}
+
+.timemd-projects-row-header:hover {
+	background: var(--background-modifier-hover);
+	border-radius: 4px;
+}
+
+.timemd-projects-caret {
+	color: var(--text-muted);
+	font-size: 0.85em;
+	text-align: center;
+	width: 16px;
+}
+
+.timemd-projects-dot {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.timemd-projects-folder {
+	font-size: 1em;
+	line-height: 1;
+}
+
+.timemd-projects-name {
+	font-weight: 500;
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.timemd-projects-count {
+	color: var(--text-muted);
+	font-size: 0.85em;
+}
+
+.timemd-projects-bar-track {
+	background: var(--background-modifier-border);
+	border-radius: 4px;
+	height: 6px;
+	overflow: hidden;
+	min-width: 60px;
+}
+
+.timemd-projects-bar-fill {
+	height: 100%;
+	border-radius: 4px;
+	background: var(--interactive-accent);
+	transition: width 120ms ease-out;
+}
+
+.timemd-projects-time {
+	color: var(--text-normal);
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	min-width: 64px;
+	text-align: right;
+}
+
+.timemd-projects-pct {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+	min-width: 38px;
+	text-align: right;
+	font-size: 0.9em;
+}
+
+.timemd-projects-row-detail {
+	padding: 6px 12px 14px 56px;
+}
+
+.timemd-projects-fallback {
+	color: var(--text-muted);
+	font-size: 0.85em;
+	font-style: italic;
+	padding: 8px 0;
+}
+
+/* Right column */
+
+.timemd-projects-right {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.timemd-projects-card {
+	display: flex;
+	flex-direction: column;
+}
+
+.timemd-projects-donut-wrap {
+	display: flex;
+	justify-content: center;
+	padding: 4px 0 14px;
+}
+
+.timemd-projects-donut {
+	display: block;
+}
+
+.timemd-projects-legend {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.timemd-projects-legend-item {
+	display: grid;
+	grid-template-columns: 12px minmax(0, 1fr) auto;
+	gap: 10px;
+	align-items: center;
+	font-size: 0.9em;
+}
+
+.timemd-projects-legend-name {
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.timemd-projects-legend-time {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.timemd-projects-stats {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.timemd-projects-stat-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	padding: 4px 0;
+	font-size: 0.9em;
+}
+
+.timemd-projects-stat-label {
+	color: var(--text-muted);
+}
+
+.timemd-projects-stat-value {
+	color: var(--text-normal);
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}

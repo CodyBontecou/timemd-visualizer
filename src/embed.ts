@@ -4,6 +4,9 @@ import { DataStore } from './store';
 import { AppRow, TrendPoint } from './types';
 import { formatDateISO, formatDuration } from './utils';
 import { TimeMdHost } from './views/base';
+import { renderProjectsEmbed } from './views/projects';
+import { renderWebHistoryEmbed } from './views/webHistory';
+import { renderReportsEmbed, ReportsFormat, ReportsGroupBy } from './views/reports';
 
 export type EmbedView =
 	| 'overview'
@@ -15,7 +18,12 @@ export type EmbedView =
 	| 'apps'
 	| 'top-apps'
 	| 'categories'
-	| 'details';
+	| 'details'
+	| 'projects'
+	| 'web-history'
+	| 'reports';
+
+export type WebHistoryTab = 'timeline' | 'domains' | 'activity';
 
 export type StatMetric =
 	| 'total_time'
@@ -36,7 +44,15 @@ export interface BlockParams {
 	title?: string;
 	sections?: OverviewSection[];
 	date?: Date;
+	tab?: WebHistoryTab;
+	browser?: string;
+	groupBy?: ReportsGroupBy;
+	format?: ReportsFormat;
 }
+
+const WEB_HISTORY_TABS: WebHistoryTab[] = ['timeline', 'domains', 'activity'];
+const REPORTS_GROUP_BY: ReportsGroupBy[] = ['app', 'category', 'day'];
+const REPORTS_FORMATS: ReportsFormat[] = ['csv', 'json', 'markdown'];
 
 function parseDateParam(value: string): Date | null {
 	const v = value.trim().toLowerCase();
@@ -101,6 +117,32 @@ export function parseBlockParams(source: string): BlockParams {
 				if (d) params.date = d;
 				break;
 			}
+			case 'tab': {
+				const v = value.toLowerCase();
+				if ((WEB_HISTORY_TABS as string[]).includes(v)) {
+					params.tab = v as WebHistoryTab;
+				}
+				break;
+			}
+			case 'browser':
+				params.browser = value;
+				break;
+			case 'groupby':
+			case 'group_by':
+			case 'group-by': {
+				const v = value.toLowerCase();
+				if ((REPORTS_GROUP_BY as string[]).includes(v)) {
+					params.groupBy = v as ReportsGroupBy;
+				}
+				break;
+			}
+			case 'format': {
+				const v = value.toLowerCase();
+				if ((REPORTS_FORMATS as string[]).includes(v)) {
+					params.format = v as ReportsFormat;
+				}
+				break;
+			}
 		}
 	}
 	return params;
@@ -163,6 +205,22 @@ export function renderEmbed(el: HTMLElement, store: DataStore, params: BlockPara
 			return;
 		case 'details':
 			renderRecentSessions(el, store, params);
+			return;
+		case 'projects':
+			renderProjectsEmbed(el, store, { limit: params.limit });
+			return;
+		case 'web-history':
+			renderWebHistoryEmbed(el, store, {
+				limit: params.limit,
+				tab: params.tab,
+				browser: params.browser,
+			});
+			return;
+		case 'reports':
+			renderReportsEmbed(el, store, {
+				groupBy: params.groupBy,
+				format: params.format,
+			});
 			return;
 		case 'overview':
 		default:

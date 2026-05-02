@@ -1,0 +1,189 @@
+.timemd-reports {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+.timemd-reports-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.timemd-reports-title-block {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.timemd-reports-title {
+	margin: 0;
+	font-size: 1.6em;
+	font-weight: 700;
+	color: var(--text-normal);
+	line-height: 1.1;
+}
+
+.timemd-reports-subtitle {
+	color: var(--text-muted);
+	font-size: 0.78em;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.timemd-reports-export-btn {
+	background: var(--timemd-accent, var(--interactive-accent));
+	color: white;
+	border: none;
+	border-radius: 6px;
+	padding: 8px 18px;
+	font-size: 0.9em;
+	font-weight: 600;
+	cursor: pointer;
+	transition: filter 120ms ease;
+}
+
+.timemd-reports-export-btn:hover {
+	filter: brightness(1.08);
+}
+
+.timemd-reports-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	flex-wrap: wrap;
+}
+
+.timemd-reports-pillgroup {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.timemd-reports-pillgroup-right {
+	margin-left: auto;
+}
+
+.timemd-reports-pill-label {
+	color: var(--text-muted);
+	font-size: 0.85em;
+}
+
+.timemd-reports-pills {
+	display: inline-flex;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 3px;
+	gap: 2px;
+}
+
+.timemd-reports-pill {
+	background: transparent;
+	color: var(--text-normal);
+	border: none;
+	border-radius: 6px;
+	padding: 5px 12px;
+	font-size: 0.85em;
+	cursor: pointer;
+	transition: background 120ms ease, color 120ms ease;
+}
+
+.timemd-reports-pill:hover {
+	background: var(--background-modifier-hover);
+}
+
+.timemd-reports-pill-active,
+.timemd-reports-pill-active:hover {
+	background: var(--timemd-accent, var(--interactive-accent));
+	color: white;
+}
+
+.timemd-reports-stats {
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.timemd-reports-stat {
+	text-align: center;
+	padding: 14px 16px;
+}
+
+.timemd-reports-stat .timemd-stat-label {
+	white-space: normal;
+}
+
+.timemd-reports-stat .timemd-stat-value {
+	font-size: 1.6em;
+	font-weight: 700;
+	white-space: normal;
+}
+
+.timemd-reports-stat-sub {
+	margin-top: 4px;
+	color: var(--text-muted);
+	font-size: 0.78em;
+	letter-spacing: 0.04em;
+}
+
+.timemd-reports-section {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.timemd-reports-section-title {
+	color: var(--text-muted);
+	font-size: 0.78em;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.timemd-reports-vbars {
+	width: 100%;
+	height: auto;
+}
+
+.timemd-reports-vbar-value {
+	font-size: 10px;
+}
+
+.timemd-reports-table thead th {
+	cursor: pointer;
+	user-select: none;
+	font-size: 0.78em;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
+.timemd-reports-table thead th:hover {
+	color: var(--text-normal);
+}
+
+.timemd-reports-table .timemd-reports-num {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.timemd-reports-th.timemd-reports-sort-asc::after {
+	content: ' \25B2';
+	font-size: 0.7em;
+	color: var(--timemd-accent, var(--interactive-accent));
+}
+
+.timemd-reports-th.timemd-reports-sort-desc::after {
+	content: ' \25BC';
+	font-size: 0.7em;
+	color: var(--timemd-accent, var(--interactive-accent));
+}
+
+.timemd-reports-embed {
+	display: block;
+	padding: 12px 14px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	margin: 8px 0;
+}
