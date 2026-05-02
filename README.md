@@ -55,6 +55,7 @@ view: overview
 | `limit` | `overview`, `top-apps`, `categories`, `details` | varies | number of items shown |
 | `days` | `overview`, `trend-chart` | all | restrict to last N days of trend data |
 | `metric` | `stat` | `total_time` | `total_time`, `top_app`, `apps_count`, `days`, `peak_day` |
+| `sections` | `overview` | all | comma-separated list of `stats`, `trend`, `heatmap`, `apps` |
 | `title` | all | — | optional heading |
 
 ### Examples
@@ -85,6 +86,17 @@ Top 5 apps:
 ```timemd
 view: top-apps
 limit: 5
+```
+````
+
+Lean overview — stats and apps only, last 7 days:
+
+````markdown
+```timemd
+view: overview
+sections: stats, apps
+days: 7
+limit: 3
 ```
 ````
 

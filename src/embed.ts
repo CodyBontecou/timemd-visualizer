@@ -24,12 +24,17 @@ export type StatMetric =
 	| 'days'
 	| 'peak_day';
 
+export type OverviewSection = 'stats' | 'trend' | 'heatmap' | 'apps';
+
+const ALL_OVERVIEW_SECTIONS: OverviewSection[] = ['stats', 'trend', 'heatmap', 'apps'];
+
 export interface BlockParams {
 	view: EmbedView;
 	limit?: number;
 	days?: number;
 	metric?: StatMetric;
 	title?: string;
+	sections?: OverviewSection[];
 }
 
 export function parseBlockParams(source: string): BlockParams {
@@ -61,6 +66,16 @@ export function parseBlockParams(source: string): BlockParams {
 			case 'title':
 				params.title = value;
 				break;
+			case 'sections': {
+				const picked = value
+					.split(',')
+					.map((s) => s.trim().toLowerCase())
+					.filter((s): s is OverviewSection =>
+						ALL_OVERVIEW_SECTIONS.includes(s as OverviewSection),
+					);
+				if (picked.length > 0) params.sections = picked;
+				break;
+			}
 		}
 	}
 	return params;
@@ -131,45 +146,53 @@ export function renderEmbed(el: HTMLElement, store: DataStore, params: BlockPara
 }
 
 function renderOverview(el: HTMLElement, store: DataStore, params: BlockParams): void {
-	const statsRow = el.createDiv({ cls: 'timemd-stats-row' });
-	addStat(statsRow, 'Total', formatDuration(store.getTotalSeconds()));
+	const sections = new Set<OverviewSection>(params.sections ?? ALL_OVERVIEW_SECTIONS);
 	const apps = store.getApps();
-	addStat(statsRow, 'Top app', apps[0]?.app_name ?? '—');
-	addStat(statsRow, 'Apps', String(apps.length));
-	const range = store.getDateRange();
-	let rangeText = '—';
-	if (range) {
-		const start = formatDateISO(range.start);
-		const end = formatDateISO(range.end);
-		rangeText = start === end ? start : `${start} → ${end}`;
-	}
-	addStat(statsRow, 'Range', rangeText);
 
-	const trend = filterDays(store.getTrend(), params.days);
-	if (trend.length > 0) {
-		const chartWrap = el.createDiv({ cls: 'timemd-embed-chart' });
-		renderLineChart(
-			chartWrap,
-			trend.map((t) => ({ label: formatDateISO(t.date).slice(5), value: t.total_seconds })),
-			{ height: 180 },
-		);
-	}
-
-	const heatmap = store.getHeatmap();
-	if (heatmap.length > 0) {
-		const heatWrap = el.createDiv({ cls: 'timemd-embed-heatmap' });
-		const grid: number[][] = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
-		for (const cell of heatmap) {
-			const d = Math.max(0, Math.min(6, cell.weekday - 1));
-			const h = Math.max(0, Math.min(23, cell.hour));
-			const row = grid[d]!;
-			row[h] = (row[h] ?? 0) + cell.total_seconds;
+	if (sections.has('stats')) {
+		const statsRow = el.createDiv({ cls: 'timemd-stats-row' });
+		addStat(statsRow, 'Total', formatDuration(store.getTotalSeconds()));
+		addStat(statsRow, 'Top app', apps[0]?.app_name ?? '—');
+		addStat(statsRow, 'Apps', String(apps.length));
+		const range = store.getDateRange();
+		let rangeText = '—';
+		if (range) {
+			const start = formatDateISO(range.start);
+			const end = formatDateISO(range.end);
+			rangeText = start === end ? start : `${start} → ${end}`;
 		}
-		renderHeatmap(heatWrap, grid, { formatValue: formatDuration });
+		addStat(statsRow, 'Range', rangeText);
 	}
 
-	const limit = params.limit ?? 5;
-	if (apps.length > 0) {
+	if (sections.has('trend')) {
+		const trend = filterDays(store.getTrend(), params.days);
+		if (trend.length > 0) {
+			const chartWrap = el.createDiv({ cls: 'timemd-embed-chart' });
+			renderLineChart(
+				chartWrap,
+				trend.map((t) => ({ label: formatDateISO(t.date).slice(5), value: t.total_seconds })),
+				{ height: 180 },
+			);
+		}
+	}
+
+	if (sections.has('heatmap')) {
+		const heatmap = store.getHeatmap();
+		if (heatmap.length > 0) {
+			const heatWrap = el.createDiv({ cls: 'timemd-embed-heatmap' });
+			const grid: number[][] = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+			for (const cell of heatmap) {
+				const d = Math.max(0, Math.min(6, cell.weekday - 1));
+				const h = Math.max(0, Math.min(23, cell.hour));
+				const row = grid[d]!;
+				row[h] = (row[h] ?? 0) + cell.total_seconds;
+			}
+			renderHeatmap(heatWrap, grid, { formatValue: formatDuration });
+		}
+	}
+
+	if (sections.has('apps') && apps.length > 0) {
+		const limit = params.limit ?? 5;
 		const barsWrap = el.createDiv({ cls: 'timemd-embed-bars' });
 		renderBarList(
 			barsWrap,
