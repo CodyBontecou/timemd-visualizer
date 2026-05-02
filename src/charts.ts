@@ -183,3 +183,66 @@ export function renderHeatmap(
 		root.appendChild(t);
 	}
 }
+
+export function renderHourStrip(
+	parent: HTMLElement,
+	hours: number[],
+	opts: { label?: string; formatValue?: (v: number) => string } = {},
+): void {
+	const fmt = opts.formatValue ?? ((v: number) => String(v));
+	const cell = 22;
+	const pad = { l: opts.label ? 96 : 16, t: 28, r: 8, b: 8 };
+	const width = pad.l + 24 * cell + pad.r;
+	const height = pad.t + cell + pad.b;
+
+	const root = svg('svg', {
+		width,
+		height,
+		class: 'timemd-chart timemd-heatmap',
+		viewBox: `0 0 ${width} ${height}`,
+	});
+	parent.appendChild(root);
+
+	const max = Math.max(1, ...hours);
+	const rgb = getHeatmapRgb();
+
+	for (let h = 0; h < 24; h++) {
+		const v = hours[h] ?? 0;
+		const intensity = v / max;
+		const rect = svg('rect', {
+			x: pad.l + h * cell,
+			y: pad.t,
+			width: cell - 2,
+			height: cell - 2,
+			rx: 3,
+			class: 'timemd-heatmap-cell',
+		});
+		(rect as SVGElement).setAttribute('fill', `rgba(${rgb}, ${0.08 + intensity * 0.92})`);
+		const title = svg('title');
+		title.textContent = `${h}:00 — ${fmt(v)}`;
+		rect.appendChild(title);
+		root.appendChild(rect);
+	}
+
+	if (opts.label) {
+		const t = svg('text', {
+			x: pad.l - 10,
+			y: pad.t + cell / 2 + 4,
+			'text-anchor': 'end',
+			class: 'timemd-axis-label',
+		});
+		t.textContent = opts.label;
+		root.appendChild(t);
+	}
+
+	for (let h = 0; h < 24; h += 3) {
+		const t = svg('text', {
+			x: pad.l + h * cell + cell / 2,
+			y: pad.t - 10,
+			'text-anchor': 'middle',
+			class: 'timemd-axis-label',
+		});
+		t.textContent = `${h}:00`;
+		root.appendChild(t);
+	}
+}

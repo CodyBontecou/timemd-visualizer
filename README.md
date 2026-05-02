@@ -56,6 +56,7 @@ view: overview
 | `days` | `overview`, `trend-chart` | all | restrict to last N days of trend data |
 | `metric` | `stat` | `total_time` | `total_time`, `top_app`, `apps_count`, `days`, `peak_day` |
 | `sections` | `overview` | all | comma-separated list of `stats`, `trend`, `heatmap`, `apps` |
+| `date` | `overview` | — | `today`, `yesterday`, or `YYYY-MM-DD` — filters every panel to that single day (requires Raw Sessions in the export) |
 | `title` | all | — | optional heading |
 
 ### Examples
@@ -97,6 +98,16 @@ view: overview
 sections: stats, apps
 days: 7
 limit: 3
+```
+````
+
+Just yesterday:
+
+````markdown
+```timemd
+view: overview
+date: yesterday
+title: Yesterday
 ```
 ````
 

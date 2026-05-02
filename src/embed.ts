@@ -1,7 +1,7 @@
 import { MarkdownRenderChild } from 'obsidian';
-import { renderBarList, renderHeatmap, renderLineChart } from './charts';
+import { renderBarList, renderHeatmap, renderHourStrip, renderLineChart } from './charts';
 import { DataStore } from './store';
-import { TrendPoint } from './types';
+import { AppRow, TrendPoint } from './types';
 import { formatDateISO, formatDuration } from './utils';
 import { TimeMdHost } from './views/base';
 
@@ -35,6 +35,26 @@ export interface BlockParams {
 	metric?: StatMetric;
 	title?: string;
 	sections?: OverviewSection[];
+	date?: Date;
+}
+
+function parseDateParam(value: string): Date | null {
+	const v = value.trim().toLowerCase();
+	const now = new Date();
+	const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+	if (v === 'today') return startOfToday;
+	if (v === 'yesterday') {
+		const d = new Date(startOfToday);
+		d.setDate(d.getDate() - 1);
+		return d;
+	}
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+	if (!m) return null;
+	const y = Number(m[1]);
+	const mo = Number(m[2]) - 1;
+	const da = Number(m[3]);
+	const d = new Date(y, mo, da);
+	return Number.isNaN(d.getTime()) ? null : d;
 }
 
 export function parseBlockParams(source: string): BlockParams {
@@ -74,6 +94,11 @@ export function parseBlockParams(source: string): BlockParams {
 						ALL_OVERVIEW_SECTIONS.includes(s as OverviewSection),
 					);
 				if (picked.length > 0) params.sections = picked;
+				break;
+			}
+			case 'date': {
+				const d = parseDateParam(value);
+				if (d) params.date = d;
 				break;
 			}
 		}
@@ -145,58 +170,121 @@ export function renderEmbed(el: HTMLElement, store: DataStore, params: BlockPara
 	}
 }
 
+interface OverviewData {
+	apps: AppRow[];
+	totalSeconds: number;
+	trend: TrendPoint[];
+	rangeText: string;
+	hourly: number[] | null;
+}
+
+function buildOverviewData(store: DataStore, params: BlockParams): OverviewData | { empty: string } {
+	if (params.date) {
+		const dayKey = formatDateISO(params.date);
+		const allSessions = store.getSessions();
+		if (allSessions.length === 0) {
+			return {
+				empty:
+					'Per-day filtering needs the Raw Sessions section in your export. Re-export with sessions included.',
+			};
+		}
+		const dailySessions = allSessions.filter((s) => formatDateISO(s.start_time) === dayKey);
+		if (dailySessions.length === 0) {
+			return { empty: `No data for ${dayKey}.` };
+		}
+		const appMap = new Map<string, AppRow>();
+		const hourly = Array.from<number>({ length: 24 }).fill(0);
+		for (const s of dailySessions) {
+			const existing =
+				appMap.get(s.app_name) ?? { app_name: s.app_name, total_seconds: 0, session_count: 0 };
+			existing.total_seconds += s.duration_seconds;
+			existing.session_count += 1;
+			appMap.set(s.app_name, existing);
+			const h = Math.max(0, Math.min(23, s.start_time.getHours()));
+			hourly[h] = (hourly[h] ?? 0) + s.duration_seconds;
+		}
+		const apps = [...appMap.values()].sort((a, b) => b.total_seconds - a.total_seconds);
+		const totalSeconds = apps.reduce((sum, a) => sum + a.total_seconds, 0);
+		const trendPoint = store.getTrend().find((t) => formatDateISO(t.date) === dayKey);
+		return {
+			apps,
+			totalSeconds,
+			trend: [trendPoint ?? { date: params.date, total_seconds: totalSeconds }],
+			rangeText: dayKey,
+			hourly,
+		};
+	}
+
+	const range = store.getDateRange();
+	let rangeText = '—';
+	if (range) {
+		const start = formatDateISO(range.start);
+		const end = formatDateISO(range.end);
+		rangeText = start === end ? start : `${start} → ${end}`;
+	}
+	return {
+		apps: store.getApps(),
+		totalSeconds: store.getTotalSeconds(),
+		trend: filterDays(store.getTrend(), params.days),
+		rangeText,
+		hourly: null,
+	};
+}
+
 function renderOverview(el: HTMLElement, store: DataStore, params: BlockParams): void {
 	const sections = new Set<OverviewSection>(params.sections ?? ALL_OVERVIEW_SECTIONS);
-	const apps = store.getApps();
+	const data = buildOverviewData(store, params);
+	if ('empty' in data) {
+		el.createDiv({ cls: 'timemd-embed-empty', text: data.empty });
+		return;
+	}
 
 	if (sections.has('stats')) {
 		const statsRow = el.createDiv({ cls: 'timemd-stats-row' });
-		addStat(statsRow, 'Total', formatDuration(store.getTotalSeconds()));
-		addStat(statsRow, 'Top app', apps[0]?.app_name ?? '—');
-		addStat(statsRow, 'Apps', String(apps.length));
-		const range = store.getDateRange();
-		let rangeText = '—';
-		if (range) {
-			const start = formatDateISO(range.start);
-			const end = formatDateISO(range.end);
-			rangeText = start === end ? start : `${start} → ${end}`;
-		}
-		addStat(statsRow, 'Range', rangeText);
+		addStat(statsRow, 'Total', formatDuration(data.totalSeconds));
+		addStat(statsRow, 'Top app', data.apps[0]?.app_name ?? '—');
+		addStat(statsRow, 'Apps', String(data.apps.length));
+		addStat(statsRow, params.date ? 'Date' : 'Range', data.rangeText);
 	}
 
-	if (sections.has('trend')) {
-		const trend = filterDays(store.getTrend(), params.days);
-		if (trend.length > 0) {
-			const chartWrap = el.createDiv({ cls: 'timemd-embed-chart' });
-			renderLineChart(
-				chartWrap,
-				trend.map((t) => ({ label: formatDateISO(t.date).slice(5), value: t.total_seconds })),
-				{ height: 180 },
-			);
-		}
+	if (sections.has('trend') && data.trend.length > 0) {
+		const chartWrap = el.createDiv({ cls: 'timemd-embed-chart' });
+		renderLineChart(
+			chartWrap,
+			data.trend.map((t) => ({ label: formatDateISO(t.date).slice(5), value: t.total_seconds })),
+			{ height: 180 },
+		);
 	}
 
 	if (sections.has('heatmap')) {
-		const heatmap = store.getHeatmap();
-		if (heatmap.length > 0) {
+		if (data.hourly) {
 			const heatWrap = el.createDiv({ cls: 'timemd-embed-heatmap' });
-			const grid: number[][] = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
-			for (const cell of heatmap) {
-				const d = Math.max(0, Math.min(6, cell.weekday - 1));
-				const h = Math.max(0, Math.min(23, cell.hour));
-				const row = grid[d]!;
-				row[h] = (row[h] ?? 0) + cell.total_seconds;
+			renderHourStrip(heatWrap, data.hourly, {
+				label: data.rangeText,
+				formatValue: formatDuration,
+			});
+		} else {
+			const heatmap = store.getHeatmap();
+			if (heatmap.length > 0) {
+				const heatWrap = el.createDiv({ cls: 'timemd-embed-heatmap' });
+				const grid: number[][] = Array.from({ length: 7 }, () => Array<number>(24).fill(0));
+				for (const cell of heatmap) {
+					const d = Math.max(0, Math.min(6, cell.weekday - 1));
+					const h = Math.max(0, Math.min(23, cell.hour));
+					const row = grid[d]!;
+					row[h] = (row[h] ?? 0) + cell.total_seconds;
+				}
+				renderHeatmap(heatWrap, grid, { formatValue: formatDuration });
 			}
-			renderHeatmap(heatWrap, grid, { formatValue: formatDuration });
 		}
 	}
 
-	if (sections.has('apps') && apps.length > 0) {
+	if (sections.has('apps') && data.apps.length > 0) {
 		const limit = params.limit ?? 5;
 		const barsWrap = el.createDiv({ cls: 'timemd-embed-bars' });
 		renderBarList(
 			barsWrap,
-			apps.slice(0, limit).map((a) => ({ label: a.app_name, value: a.total_seconds })),
+			data.apps.slice(0, limit).map((a) => ({ label: a.app_name, value: a.total_seconds })),
 			{ formatValue: formatDuration },
 		);
 	}
