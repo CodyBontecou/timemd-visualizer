@@ -231,6 +231,17 @@
 	margin: 8px 0;
 }
 
+.timemd-embed-bare .timemd-card,
+.timemd-embed-bare .timemd-stat,
+.timemd-embed-bare .timemd-stat-card,
+.timemd-embed-bare .timemd-projects-card,
+.timemd-embed-bare .timemd-history-stat,
+.timemd-embed-bare .timemd-reports-stat {
+	background: none;
+	border: none;
+	padding: 0;
+}
+
 .timemd-embed-bare .timemd-projects-donut-wrap {
 	padding: 0;
 }
