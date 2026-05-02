@@ -4,7 +4,7 @@ import { DataStore } from './store';
 import { AppRow, TrendPoint } from './types';
 import { formatDateISO, formatDuration } from './utils';
 import { TimeMdHost } from './views/base';
-import { renderProjectsEmbed } from './views/projects';
+import { renderDistributionEmbed, renderProjectsEmbed } from './views/projects';
 import { renderWebHistoryEmbed } from './views/webHistory';
 import { renderReportsEmbed, ReportsFormat, ReportsGroupBy } from './views/reports';
 
@@ -20,6 +20,7 @@ export type EmbedView =
 	| 'categories'
 	| 'details'
 	| 'projects'
+	| 'distribution'
 	| 'web-history'
 	| 'reports';
 
@@ -48,6 +49,7 @@ export interface BlockParams {
 	browser?: string;
 	groupBy?: ReportsGroupBy;
 	format?: ReportsFormat;
+	stats?: boolean;
 }
 
 const WEB_HISTORY_TABS: WebHistoryTab[] = ['timeline', 'domains', 'activity'];
@@ -143,6 +145,12 @@ export function parseBlockParams(source: string): BlockParams {
 				}
 				break;
 			}
+			case 'stats': {
+				const v = value.toLowerCase();
+				if (v === 'true' || v === 'yes' || v === '1') params.stats = true;
+				else if (v === 'false' || v === 'no' || v === '0') params.stats = false;
+				break;
+			}
 		}
 	}
 	return params;
@@ -208,6 +216,9 @@ export function renderEmbed(el: HTMLElement, store: DataStore, params: BlockPara
 			return;
 		case 'projects':
 			renderProjectsEmbed(el, store, { limit: params.limit });
+			return;
+		case 'distribution':
+			renderDistributionEmbed(el, store, { stats: params.stats });
 			return;
 		case 'web-history':
 			renderWebHistoryEmbed(el, store, {

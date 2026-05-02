@@ -50,6 +50,7 @@ view: overview
 | `categories` | Category bar list |
 | `details` | Recent sessions list |
 | `projects` | Categories list + distribution donut + stats |
+| `distribution` | Donut chart + category legend + stats card (no list) |
 | `web-history` | Browser history (timeline / domains / activity tab) |
 | `reports` | Time distribution + weekday averages + report data table |
 
@@ -65,6 +66,7 @@ view: overview
 | `date` | `overview` | — | `today`, `yesterday`, or `YYYY-MM-DD` — filters every panel to that single day (requires Raw Sessions in the export) |
 | `tab` | `web-history` | `timeline` | `timeline`, `domains`, or `activity` |
 | `browser` | `web-history` | — | filter to a single browser (`Safari`, `Chrome`, `Arc`, …) |
+| `stats` | `distribution` | `true` | `false` to hide the STATS card |
 | `groupBy` | `reports` | `app` | `app`, `category`, or `day` |
 | `format` | `reports` | `csv` | `csv`, `json`, or `markdown` (used by the in-view Export button) |
 | `title` | all | — | optional heading |

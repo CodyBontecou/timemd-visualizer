@@ -294,40 +294,7 @@ function renderProjectsContent(
 
 	const renderRight = () => {
 		rightCol.empty();
-
-		const distCard = rightCol.createDiv({ cls: 'timemd-projects-card' });
-		distCard.createDiv({
-			cls: 'timemd-projects-section-label',
-			text: 'DISTRIBUTION',
-		});
-		const donutWrap = distCard.createDiv({ cls: 'timemd-projects-donut-wrap' });
-		renderDonut(donutWrap, categories, totalSeconds);
-
-		const legend = distCard.createDiv({ cls: 'timemd-projects-legend' });
-		for (const cat of categories) {
-			const item = legend.createDiv({ cls: 'timemd-projects-legend-item' });
-			const dot = item.createSpan({ cls: 'timemd-projects-dot' });
-			(dot as HTMLElement).style.background = colorFor(cat.category);
-			item.createSpan({
-				cls: 'timemd-projects-legend-name',
-				text: cat.category,
-			});
-			item.createSpan({
-				cls: 'timemd-projects-legend-time',
-				text: formatDuration(cat.total_seconds),
-			});
-		}
-
-		const statsCard = rightCol.createDiv({ cls: 'timemd-projects-card' });
-		statsCard.createDiv({
-			cls: 'timemd-projects-section-label',
-			text: 'STATS',
-		});
-		const stats = statsCard.createDiv({ cls: 'timemd-projects-stats' });
-		addStatRow(stats, 'Categories', String(categories.length));
-		addStatRow(stats, 'Total Apps', String(apps.length));
-		addStatRow(stats, 'Total Time', formatDuration(totalSeconds));
-		addStatRow(stats, 'Top Project', categories[0]?.category ?? '—');
+		renderDistributionCards(rightCol, categories, apps.length, totalSeconds);
 	};
 
 	search.addEventListener('input', () => {
@@ -350,6 +317,70 @@ function addStatRow(parent: HTMLElement, label: string, value: string): void {
 	const row = parent.createDiv({ cls: 'timemd-projects-stat-row' });
 	row.createDiv({ cls: 'timemd-projects-stat-label', text: label });
 	row.createDiv({ cls: 'timemd-projects-stat-value', text: value });
+}
+
+function renderDistributionCards(
+	parent: HTMLElement,
+	categories: CategoryRow[],
+	totalApps: number,
+	totalSeconds: number,
+	opts: { showStats?: boolean } = {},
+): void {
+	const distCard = parent.createDiv({ cls: 'timemd-projects-card' });
+	distCard.createDiv({
+		cls: 'timemd-projects-section-label',
+		text: 'DISTRIBUTION',
+	});
+	const donutWrap = distCard.createDiv({ cls: 'timemd-projects-donut-wrap' });
+	renderDonut(donutWrap, categories, totalSeconds);
+
+	const legend = distCard.createDiv({ cls: 'timemd-projects-legend' });
+	for (const cat of categories) {
+		const item = legend.createDiv({ cls: 'timemd-projects-legend-item' });
+		const dot = item.createSpan({ cls: 'timemd-projects-dot' });
+		(dot as HTMLElement).style.background = colorFor(cat.category);
+		item.createSpan({
+			cls: 'timemd-projects-legend-name',
+			text: cat.category,
+		});
+		item.createSpan({
+			cls: 'timemd-projects-legend-time',
+			text: formatDuration(cat.total_seconds),
+		});
+	}
+
+	if (opts.showStats !== false) {
+		const statsCard = parent.createDiv({ cls: 'timemd-projects-card' });
+		statsCard.createDiv({
+			cls: 'timemd-projects-section-label',
+			text: 'STATS',
+		});
+		const stats = statsCard.createDiv({ cls: 'timemd-projects-stats' });
+		addStatRow(stats, 'Categories', String(categories.length));
+		addStatRow(stats, 'Total Apps', String(totalApps));
+		addStatRow(stats, 'Total Time', formatDuration(totalSeconds));
+		addStatRow(stats, 'Top Project', categories[0]?.category ?? '—');
+	}
+}
+
+export function renderDistributionEmbed(
+	el: HTMLElement,
+	store: DataStore,
+	opts?: { stats?: boolean },
+): void {
+	el.addClass('timemd-projects');
+	const wrap = el.createDiv({ cls: 'timemd-projects-distribution-embed' });
+	const categories = store.getCategories();
+	if (categories.length === 0) {
+		wrap.createDiv({
+			cls: 'timemd-empty-inline',
+			text: 'No categories section in the loaded exports.',
+		});
+		return;
+	}
+	renderDistributionCards(wrap, categories, store.getApps().length, store.getTotalSeconds(), {
+		showStats: opts?.stats !== false,
+	});
 }
 
 interface ProjectsState {

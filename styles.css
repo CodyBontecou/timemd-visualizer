@@ -591,7 +591,8 @@
 
 /* Right column */
 
-.timemd-projects-right {
+.timemd-projects-right,
+.timemd-projects-distribution-embed {
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
