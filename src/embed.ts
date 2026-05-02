@@ -52,6 +52,7 @@ export interface BlockParams {
 	stats?: boolean;
 	legend?: boolean;
 	label?: boolean;
+	bare?: boolean;
 }
 
 const WEB_HISTORY_TABS: WebHistoryTab[] = ['timeline', 'domains', 'activity'];
@@ -165,6 +166,12 @@ export function parseBlockParams(source: string): BlockParams {
 				else if (v === 'false' || v === 'no' || v === '0') params.label = false;
 				break;
 			}
+			case 'bare': {
+				const v = value.toLowerCase();
+				if (v === 'true' || v === 'yes' || v === '1') params.bare = true;
+				else if (v === 'false' || v === 'no' || v === '0') params.bare = false;
+				break;
+			}
 		}
 	}
 	return params;
@@ -192,6 +199,7 @@ export class TimeMdBlock extends MarkdownRenderChild {
 
 export function renderEmbed(el: HTMLElement, store: DataStore, params: BlockParams): void {
 	el.addClass('timemd-embed');
+	if (params.bare) el.addClass('timemd-embed-bare');
 	if (!store.hasData()) {
 		el.createDiv({
 			cls: 'timemd-embed-empty',
