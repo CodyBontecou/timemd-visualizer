@@ -168,7 +168,24 @@ export class DataStore extends Events {
 	}
 
 	getTotalSeconds(): number {
-		return this.getApps().reduce((sum, a) => sum + a.total_seconds, 0);
+		// Prefer the authoritative summary total — recent time.md exporters truncate
+		// the "Top Apps" section to a top-N subset while keeping summary and
+		// categories complete, so summing apps undercounts. Fall back to the
+		// larger of categories vs apps to stay coherent on older exports.
+		let summaryTotal = 0;
+		let sawSummary = false;
+		for (const section of this.allSections('summary')) {
+			for (const row of section.rows) {
+				if (String(row['metric']).trim().toLowerCase() === 'total_seconds') {
+					summaryTotal += toNumber(row['value']);
+					sawSummary = true;
+				}
+			}
+		}
+		if (sawSummary && summaryTotal > 0) return summaryTotal;
+		const appsTotal = this.getApps().reduce((sum, a) => sum + a.total_seconds, 0);
+		const catsTotal = this.getCategories().reduce((sum, c) => sum + c.total_seconds, 0);
+		return Math.max(appsTotal, catsTotal);
 	}
 
 	getDateRange(): { start: Date; end: Date } | null {

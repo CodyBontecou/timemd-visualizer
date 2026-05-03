@@ -143,6 +143,9 @@ function renderDonut(
 		return { onHover: () => {} };
 	}
 
+	const categoriesTotal = categories.reduce((s, c) => s + c.total_seconds, 0);
+	const sliceDenom = Math.max(totalSeconds, categoriesTotal);
+
 	const listeners: Array<(c: CategoryRow | null) => void> = [];
 	const setHover = (cat: CategoryRow | null): void => {
 		if (cat) {
@@ -164,7 +167,7 @@ function renderDonut(
 	const TWO_PI = Math.PI * 2;
 	const minVisibleAngle = 0.005; // hide zero-second slices
 	for (const cat of categories) {
-		const fraction = cat.total_seconds / totalSeconds;
+		const fraction = cat.total_seconds / sliceDenom;
 		const sweep = fraction * TWO_PI;
 		if (sweep <= minVisibleAngle) continue;
 		const start = acc;
