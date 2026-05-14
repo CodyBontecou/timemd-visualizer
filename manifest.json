@@ -1,7 +1,7 @@
 {
 	"id": "timemd-visualizor",
 	"name": "timemd-visualizor",
-	"version": "0.3.5",
+	"version": "0.3.6",
 	"minAppVersion": "1.4.0",
 	"description": "Navigate and visualize data exported from the time.md screen-time analytics app.",
 	"author": "Cody Bontecou",

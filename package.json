@@ -1,6 +1,6 @@
 {
 	"name": "timemd-visualizor",
-	"version": "0.3.5",
+	"version": "0.3.6",
 	"description": "Navigate and visualize data exported from the time.md screen-time analytics app.",
 	"main": "main.js",
 	"type": "module",
