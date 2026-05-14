@@ -187,11 +187,11 @@
 	vertical-align: top;
 }
 
-.timemd-history-day-row td {
-	background: var(--background-primary) !important;
+.timemd-history-table tbody tr.timemd-history-day-row td {
+	background: var(--background-primary);
 	border-bottom: 1px solid var(--background-modifier-border);
-	padding-top: 12px !important;
-	padding-bottom: 6px !important;
+	padding-top: 12px;
+	padding-bottom: 6px;
 }
 
 .timemd-history-day-cell {

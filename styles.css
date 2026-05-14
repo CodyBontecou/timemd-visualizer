@@ -259,7 +259,7 @@
 }
 
 .timemd-month-day-empty {
-	background: transparent !important;
+	background: transparent;
 }
 
 .timemd-month-day-num {
@@ -671,10 +671,6 @@
 	font-variant-numeric: tabular-nums;
 }
 
-.timemd-projects-legend-item {
-	transition: opacity 0.15s ease;
-}
-
 .timemd-projects-legend-item.is-dim {
 	opacity: 0.4;
 }
@@ -695,6 +691,7 @@
 	gap: 10px;
 	align-items: center;
 	font-size: 0.9em;
+	transition: opacity 0.15s ease;
 }
 
 .timemd-projects-legend-name {
@@ -925,11 +922,11 @@
 	vertical-align: top;
 }
 
-.timemd-history-day-row td {
-	background: var(--background-primary) !important;
+.timemd-history-table tbody tr.timemd-history-day-row td {
+	background: var(--background-primary);
 	border-bottom: 1px solid var(--background-modifier-border);
-	padding-top: 12px !important;
-	padding-bottom: 6px !important;
+	padding-top: 12px;
+	padding-bottom: 6px;
 }
 
 .timemd-history-day-cell {
