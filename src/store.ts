@@ -3,12 +3,18 @@ import { parseReport, isSupportedPath } from './parsers';
 import {
 	AppRow,
 	CategoryRow,
+	CursorBin,
 	HeatmapCell,
+	IntensityPoint,
+	RawKeystroke,
+	RawMouseEvent,
 	Report,
 	ReportSection,
 	Row,
 	SessionRow,
 	TrendPoint,
+	TypedKeyRow,
+	TypedWordRow,
 } from './types';
 import { parseDate, stripWikiLinks } from './utils';
 
@@ -38,7 +44,7 @@ export class DataStore extends Events {
 		this.lastError = null;
 
 		if (!folderPath) {
-			this.lastError = 'No export folder configured. Set one in Settings → time.md.';
+			this.lastError = 'No export folder configured. Set one in Settings → timemd-visualizor.';
 			this.trigger('changed');
 			return;
 		}
@@ -59,7 +65,7 @@ export class DataStore extends Events {
 				const mb = (file.stat.size / 1024 / 1024).toFixed(1);
 				const reason = `skipped — ${mb} MB exceeds the 50 MB cap. Re-export with tighter filters or drop the Raw Sessions / Web History sections.`;
 				this.skippedFiles.push({ path: file.path, reason });
-				console.warn(`[time.md] ${file.path}: ${reason}`);
+				console.warn(`[timemd-visualizor] ${file.path}: ${reason}`);
 				continue;
 			}
 			try {
@@ -67,7 +73,7 @@ export class DataStore extends Events {
 				const report = parseReport(file.path, content);
 				this.reports.push(report);
 			} catch (err) {
-				console.warn(`[time.md] Failed to parse ${file.path}`, err);
+				console.warn(`[timemd-visualizor] Failed to parse ${file.path}`, err);
 				this.skippedFiles.push({ path: file.path, reason: `parse error: ${String(err)}` });
 			}
 		}
@@ -78,7 +84,7 @@ export class DataStore extends Events {
 		}
 		const parts = [`loaded ${this.reports.length}`];
 		if (this.skippedFiles.length > 0) parts.push(`skipped ${this.skippedFiles.length}`);
-		new Notice(`time.md: ${parts.join(', ')}`);
+		new Notice(`timemd-visualizor: ${parts.join(', ')}`);
 		this.trigger('changed');
 	}
 
@@ -188,6 +194,118 @@ export class DataStore extends Events {
 		return Math.max(appsTotal, catsTotal);
 	}
 
+	getTypedWords(): TypedWordRow[] {
+		const map = new Map<string, number>();
+		for (const section of this.allSections('input_top_words')) {
+			for (const row of section.rows) {
+				const word = String(row['word'] ?? '').trim();
+				if (!word) continue;
+				map.set(word, (map.get(word) ?? 0) + toNumber(row['count']));
+			}
+		}
+		return [...map.entries()]
+			.map(([word, count]) => ({ word, count }))
+			.sort((a, b) => b.count - a.count);
+	}
+
+	getTypedKeys(): TypedKeyRow[] {
+		const map = new Map<number, TypedKeyRow>();
+		for (const section of this.allSections('input_top_keys')) {
+			for (const row of section.rows) {
+				const code = toNumber(row['key_code']);
+				const label = String(row['key_label'] ?? '').trim() || `Key ${code}`;
+				const existing = map.get(code) ?? { key_code: code, key_label: label, count: 0 };
+				existing.count += toNumber(row['count']);
+				map.set(code, existing);
+			}
+		}
+		return [...map.values()].sort((a, b) => b.count - a.count);
+	}
+
+	getCursorBins(): CursorBin[] {
+		const out: CursorBin[] = [];
+		for (const section of this.allSections('input_cursor_heatmap')) {
+			for (const row of section.rows) {
+				out.push({
+					screen_id: toNumber(row['screen_id']),
+					bin_x: toNumber(row['bin_x']),
+					bin_y: toNumber(row['bin_y']),
+					samples: toNumber(row['samples']),
+				});
+			}
+		}
+		return out;
+	}
+
+	getIntensity(): IntensityPoint[] {
+		const out: IntensityPoint[] = [];
+		for (const section of this.allSections('input_typing_intensity')) {
+			for (const row of section.rows) {
+				const ts = parseDate(row['timestamp']);
+				if (!ts) continue;
+				out.push({ timestamp: ts, keystrokes: toNumber(row['keystrokes']) });
+			}
+		}
+		return out.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+	}
+
+	getRawKeystrokes(): RawKeystroke[] {
+		const out: RawKeystroke[] = [];
+		for (const section of this.allSections('input_raw_keystrokes')) {
+			for (const row of section.rows) {
+				const ts = parseDate(row['timestamp']);
+				if (!ts) continue;
+				out.push({
+					timestamp: ts,
+					bundle_id: optString(row['bundle_id']),
+					app_name: optString(row['app_name']),
+					key_code: toNumber(row['key_code']),
+					modifiers: toNumber(row['modifiers']),
+					char: optString(row['char']),
+					is_word_boundary: toBoolFlag(row['is_word_boundary']),
+					secure_input: toBoolFlag(row['secure_input']),
+				});
+			}
+		}
+		return out;
+	}
+
+	getRawMouseEvents(): RawMouseEvent[] {
+		const out: RawMouseEvent[] = [];
+		for (const section of this.allSections('input_raw_mouse_events')) {
+			for (const row of section.rows) {
+				const ts = parseDate(row['timestamp']);
+				if (!ts) continue;
+				const kindNum = toNumber(row['kind']);
+				const kind = (kindNum >= 0 && kindNum <= 4 ? kindNum : 0) as RawMouseEvent['kind'];
+				out.push({
+					timestamp: ts,
+					bundle_id: optString(row['bundle_id']),
+					app_name: optString(row['app_name']),
+					kind,
+					button: toNumber(row['button']),
+					x: toNumber(row['x']),
+					y: toNumber(row['y']),
+					screen_id: toNumber(row['screen_id']),
+					scroll_dx: optNumber(row['scroll_dx']),
+					scroll_dy: optNumber(row['scroll_dy']),
+				});
+			}
+		}
+		return out;
+	}
+
+	hasInputData(): boolean {
+		return (
+			this.getTypedWords().length > 0 ||
+			this.getTypedKeys().length > 0 ||
+			this.getCursorBins().length > 0 ||
+			this.getIntensity().length > 0 ||
+			this.getRawKeystrokes().length > 0 ||
+			this.getRawMouseEvents().length > 0
+		);
+	}
+
 	getDateRange(): { start: Date; end: Date } | null {
 		const trend = this.getTrend();
 		if (trend.length === 0) return null;
@@ -214,5 +332,25 @@ function toNumber(v: Row[string] | undefined): number {
 function cleanName(v: Row[string] | undefined): string {
 	if (v == null) return '';
 	return stripWikiLinks(String(v)).trim();
+}
+
+function optString(v: Row[string] | undefined): string | undefined {
+	if (v == null) return undefined;
+	const s = String(v).trim();
+	return s ? s : undefined;
+}
+
+function optNumber(v: Row[string] | undefined): number | undefined {
+	if (v == null || v === '') return undefined;
+	if (typeof v === 'number') return Number.isFinite(v) ? v : undefined;
+	const n = Number(v);
+	return Number.isFinite(n) ? n : undefined;
+}
+
+function toBoolFlag(v: Row[string] | undefined): boolean {
+	if (v == null) return false;
+	if (typeof v === 'number') return v !== 0;
+	const s = String(v).trim().toLowerCase();
+	return s === '1' || s === 'true' || s === 'yes';
 }
 

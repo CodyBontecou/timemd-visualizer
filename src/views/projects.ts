@@ -487,7 +487,7 @@ export class ProjectsView extends TimeMdBaseView {
 	}
 
 	getDisplayText(): string {
-		return 'time.md — Projects';
+		return 'timemd-visualizor — Projects';
 	}
 
 	getIcon(): string {

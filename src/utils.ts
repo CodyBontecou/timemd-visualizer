@@ -84,6 +84,19 @@ const SECTION_ALIASES: Record<string, SectionName> = {
 	'app transitions': 'app_transitions',
 	period_comparison: 'period_comparison',
 	'period comparison': 'period_comparison',
+	'top typed words': 'input_top_words',
+	input_top_words: 'input_top_words',
+	'top typed keys': 'input_top_keys',
+	input_top_keys: 'input_top_keys',
+	'cursor heatmap bins': 'input_cursor_heatmap',
+	'cursor heatmap': 'input_cursor_heatmap',
+	input_cursor_heatmap: 'input_cursor_heatmap',
+	'typing intensity': 'input_typing_intensity',
+	input_typing_intensity: 'input_typing_intensity',
+	'raw keystrokes': 'input_raw_keystrokes',
+	input_raw_keystrokes: 'input_raw_keystrokes',
+	'raw mouse events': 'input_raw_mouse_events',
+	input_raw_mouse_events: 'input_raw_mouse_events',
 };
 
 export function canonicalSectionName(raw: string): SectionName {

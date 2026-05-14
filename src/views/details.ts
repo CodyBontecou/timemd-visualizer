@@ -16,7 +16,7 @@ export class DetailsView extends TimeMdBaseView {
 	}
 
 	getDisplayText(): string {
-		return 'time.md — Details';
+		return 'timemd-visualizor — Details';
 	}
 
 	renderBody(body: HTMLElement): void {

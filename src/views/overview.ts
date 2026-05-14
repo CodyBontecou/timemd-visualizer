@@ -22,7 +22,7 @@ export class OverviewView extends TimeMdBaseView {
 	}
 
 	getDisplayText(): string {
-		return 'time.md — Overview';
+		return 'timemd-visualizor — Overview';
 	}
 
 	renderBody(body: HTMLElement): void {

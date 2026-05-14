@@ -7,6 +7,14 @@ import { TimeMdHost } from './views/base';
 import { renderDistributionEmbed, renderProjectsEmbed } from './views/projects';
 import { renderWebHistoryEmbed } from './views/webHistory';
 import { renderReportsEmbed, ReportsFormat, ReportsGroupBy } from './views/reports';
+import {
+	renderCursorHeatmapEmbed,
+	renderInputActivityEmbed,
+	renderInputStatsEmbed,
+	renderTopKeysEmbed,
+	renderTopWordsEmbed,
+	renderTypingIntensityEmbed,
+} from './views/input';
 
 export type EmbedView =
 	| 'overview'
@@ -22,7 +30,13 @@ export type EmbedView =
 	| 'projects'
 	| 'distribution'
 	| 'web-history'
-	| 'reports';
+	| 'reports'
+	| 'input-stats'
+	| 'cursor-heatmap'
+	| 'typing-intensity'
+	| 'top-keys'
+	| 'top-words'
+	| 'input-activity';
 
 export type WebHistoryTab = 'timeline' | 'domains' | 'activity';
 
@@ -41,6 +55,7 @@ export interface BlockParams {
 	view: EmbedView;
 	limit?: number;
 	days?: number;
+	height?: number;
 	metric?: StatMetric;
 	title?: string;
 	sections?: OverviewSection[];
@@ -99,6 +114,11 @@ export function parseBlockParams(source: string): BlockParams {
 			case 'days': {
 				const n = Number(value);
 				if (Number.isFinite(n)) params.days = n;
+				break;
+			}
+			case 'height': {
+				const n = Number(value);
+				if (Number.isFinite(n) && n > 0) params.height = n;
 				break;
 			}
 			case 'metric':
@@ -205,7 +225,7 @@ export function renderEmbed(el: HTMLElement, store: DataStore, params: BlockPara
 			cls: 'timemd-embed-empty',
 			text:
 				store.lastError ??
-				'time.md: no exports loaded. Set the export folder in plugin settings and click Reload.',
+				'timemd-visualizor: no exports loaded. Set the export folder in plugin settings and click Reload.',
 		});
 		return;
 	}
@@ -258,6 +278,24 @@ export function renderEmbed(el: HTMLElement, store: DataStore, params: BlockPara
 				groupBy: params.groupBy,
 				format: params.format,
 			});
+			return;
+		case 'input-stats':
+			renderInputStatsEmbed(el, store);
+			return;
+		case 'cursor-heatmap':
+			renderCursorHeatmapEmbed(el, store, { height: params.height });
+			return;
+		case 'typing-intensity':
+			renderTypingIntensityEmbed(el, store, { height: params.height });
+			return;
+		case 'top-keys':
+			renderTopKeysEmbed(el, store, { limit: params.limit });
+			return;
+		case 'top-words':
+			renderTopWordsEmbed(el, store, { limit: params.limit });
+			return;
+		case 'input-activity':
+			renderInputActivityEmbed(el, store);
 			return;
 		case 'overview':
 		default:

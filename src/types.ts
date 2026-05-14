@@ -43,6 +43,12 @@ export type SectionName =
 	| 'context_switches'
 	| 'app_transitions'
 	| 'period_comparison'
+	| 'input_top_words'
+	| 'input_top_keys'
+	| 'input_cursor_heatmap'
+	| 'input_typing_intensity'
+	| 'input_raw_keystrokes'
+	| 'input_raw_mouse_events'
 	| 'unknown';
 
 export interface AppRow {
@@ -72,4 +78,51 @@ export interface HeatmapCell {
 	weekday: number;
 	hour: number;
 	total_seconds: number;
+}
+
+export interface TypedWordRow {
+	word: string;
+	count: number;
+}
+
+export interface TypedKeyRow {
+	key_code: number;
+	key_label: string;
+	count: number;
+}
+
+export interface CursorBin {
+	screen_id: number;
+	bin_x: number;
+	bin_y: number;
+	samples: number;
+}
+
+export interface IntensityPoint {
+	timestamp: Date;
+	keystrokes: number;
+}
+
+export interface RawKeystroke {
+	timestamp: Date;
+	bundle_id?: string;
+	app_name?: string;
+	key_code: number;
+	modifiers: number;
+	char?: string;
+	is_word_boundary: boolean;
+	secure_input: boolean;
+}
+
+export interface RawMouseEvent {
+	timestamp: Date;
+	bundle_id?: string;
+	app_name?: string;
+	kind: 0 | 1 | 2 | 3 | 4;
+	button: number;
+	x: number;
+	y: number;
+	screen_id: number;
+	scroll_dx?: number;
+	scroll_dy?: number;
 }

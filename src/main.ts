@@ -14,6 +14,7 @@ import { AppsView, VIEW_TYPE_APPS } from './views/apps';
 import { ProjectsView, VIEW_TYPE_PROJECTS } from './views/projects';
 import { WebHistoryView, VIEW_TYPE_WEB_HISTORY } from './views/webHistory';
 import { ReportsView, VIEW_TYPE_REPORTS } from './views/reports';
+import { InputView, VIEW_TYPE_INPUT } from './views/input';
 import { parseBlockParams, TimeMdBlock } from './embed';
 import { hexToRgb } from './utils';
 
@@ -25,7 +26,8 @@ type ViewType =
 	| typeof VIEW_TYPE_APPS
 	| typeof VIEW_TYPE_PROJECTS
 	| typeof VIEW_TYPE_WEB_HISTORY
-	| typeof VIEW_TYPE_REPORTS;
+	| typeof VIEW_TYPE_REPORTS
+	| typeof VIEW_TYPE_INPUT;
 
 export default class TimeMdPlugin extends Plugin {
 	settings!: TimeMdSettings;
@@ -46,9 +48,13 @@ export default class TimeMdPlugin extends Plugin {
 		this.registerView(VIEW_TYPE_PROJECTS, (leaf) => new ProjectsView(leaf, this));
 		this.registerView(VIEW_TYPE_WEB_HISTORY, (leaf) => new WebHistoryView(leaf, this));
 		this.registerView(VIEW_TYPE_REPORTS, (leaf) => new ReportsView(leaf, this));
+		this.registerView(VIEW_TYPE_INPUT, (leaf) => new InputView(leaf, this));
 
-		this.addRibbonIcon('clock-3', 'time.md: Open Overview', () => {
+		this.addRibbonIcon('clock-3', 'timemd-visualizor: Open Overview', () => {
 			void this.activateView(VIEW_TYPE_OVERVIEW);
+		});
+		this.addRibbonIcon('keyboard', 'timemd-visualizor: Open Input Tracking', () => {
+			void this.activateView(VIEW_TYPE_INPUT);
 		});
 
 		this.addCommand({
@@ -90,6 +96,11 @@ export default class TimeMdPlugin extends Plugin {
 			id: 'open-reports',
 			name: 'Open Reports',
 			callback: () => void this.activateView(VIEW_TYPE_REPORTS),
+		});
+		this.addCommand({
+			id: 'open-input-tracking',
+			name: 'Open Input Tracking',
+			callback: () => void this.activateView(VIEW_TYPE_INPUT),
 		});
 		this.addCommand({
 			id: 'reload-exports',

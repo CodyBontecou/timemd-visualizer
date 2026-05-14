@@ -1,6 +1,6 @@
 {
-	"id": "obsidian-timemd",
-	"name": "time.md",
+	"id": "timemd-visualizor",
+	"name": "timemd-visualizor",
 	"version": "0.3.5",
 	"minAppVersion": "1.4.0",
 	"description": "Navigate and visualize data exported from the time.md screen-time analytics app.",

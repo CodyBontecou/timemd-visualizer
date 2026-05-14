@@ -40,7 +40,7 @@ export class WebHistoryView extends TimeMdBaseView {
 	}
 
 	getDisplayText(): string {
-		return 'time.md — Web History';
+		return 'timemd-visualizor — Web History';
 	}
 
 	getIcon(): string {

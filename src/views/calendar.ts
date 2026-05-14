@@ -15,7 +15,7 @@ export class CalendarView extends TimeMdBaseView {
 	}
 
 	getDisplayText(): string {
-		return 'time.md — Calendar';
+		return 'timemd-visualizor — Calendar';
 	}
 
 	renderBody(body: HTMLElement): void {

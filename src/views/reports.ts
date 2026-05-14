@@ -44,7 +44,7 @@ export class ReportsView extends TimeMdBaseView {
 	}
 
 	getDisplayText(): string {
-		return 'time.md — Reports';
+		return 'timemd-visualizor — Reports';
 	}
 
 	getIcon(): string {
