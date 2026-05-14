@@ -61,7 +61,7 @@ function formatRangeSubtitle(range: { start: Date; end: Date } | null): string {
 }
 
 function svgEl(tag: string, attrs: Record<string, string | number> = {}): SVGElement {
-	const el = document.createElementNS(SVG_NS, tag);
+	const el = activeDocument.createElementNS(SVG_NS, tag);
 	for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
 	return el;
 }
@@ -487,7 +487,7 @@ export class ProjectsView extends TimeMdBaseView {
 	}
 
 	getDisplayText(): string {
-		return 'timemd-visualizor — Projects';
+		return 'Projects';
 	}
 
 	getIcon(): string {

@@ -15,7 +15,7 @@ export class TrendsView extends TimeMdBaseView {
 	}
 
 	getDisplayText(): string {
-		return 'timemd-visualizor — Trends';
+		return 'Trends';
 	}
 
 	renderBody(body: HTMLElement): void {

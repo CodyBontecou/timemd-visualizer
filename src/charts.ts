@@ -1,7 +1,7 @@
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function svg(tag: string, attrs: Record<string, string | number> = {}): SVGElement {
-	const el = document.createElementNS(SVG_NS, tag);
+	const el = activeDocument.createElementNS(SVG_NS, tag);
 	for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
 	return el;
 }
@@ -10,7 +10,7 @@ const DEFAULT_HEATMAP_RGB = '88, 101, 242';
 
 export function getHeatmapRgb(): string {
 	try {
-		const v = getComputedStyle(document.body).getPropertyValue('--timemd-heatmap-rgb').trim();
+		const v = activeWindow.getComputedStyle(activeDocument.body).getPropertyValue('--timemd-heatmap-rgb').trim();
 		return v || DEFAULT_HEATMAP_RGB;
 	} catch {
 		return DEFAULT_HEATMAP_RGB;
@@ -153,7 +153,7 @@ export function renderHeatmap(
 				rx: 3,
 				class: 'timemd-heatmap-cell',
 			});
-			(rect as SVGElement).setAttribute('fill', `rgba(${rgb}, ${0.08 + intensity * 0.92})`);
+			rect.setAttribute('fill', `rgba(${rgb}, ${0.08 + intensity * 0.92})`);
 			const title = svg('title');
 			title.textContent = `${days[d]} ${h}:00 — ${fmt(v)}`;
 			rect.appendChild(title);
@@ -217,7 +217,7 @@ export function renderHourStrip(
 			rx: 3,
 			class: 'timemd-heatmap-cell',
 		});
-		(rect as SVGElement).setAttribute('fill', `rgba(${rgb}, ${0.08 + intensity * 0.92})`);
+		rect.setAttribute('fill', `rgba(${rgb}, ${0.08 + intensity * 0.92})`);
 		const title = svg('title');
 		title.textContent = `${h}:00 — ${fmt(v)}`;
 		rect.appendChild(title);

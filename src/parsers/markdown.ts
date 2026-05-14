@@ -36,7 +36,7 @@ export function parseMarkdownBody(
 		const metaRange = line.match(/\*\*Date Range:\*\*\s*(.+)/);
 		if (metaRange && metaRange[1]) {
 			const v = stripWikiLinks(metaRange[1]).trim();
-			const parts = v.split(/[→\-]+/).map((s) => s.trim()).filter(Boolean);
+			const parts = v.split(/[→-]+/).map((s) => s.trim()).filter(Boolean);
 			if (parts[0]) metadata.dateRangeStart = parseDate(parts[0]) ?? metadata.dateRangeStart;
 			if (parts[1]) metadata.dateRangeEnd = parseDate(parts[1]) ?? metadata.dateRangeEnd;
 			i++;

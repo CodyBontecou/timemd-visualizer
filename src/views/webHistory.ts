@@ -40,7 +40,7 @@ export class WebHistoryView extends TimeMdBaseView {
 	}
 
 	getDisplayText(): string {
-		return 'timemd-visualizor — Web History';
+		return 'Web history';
 	}
 
 	getIcon(): string {
@@ -417,9 +417,9 @@ function drawTimelineTable(
 		cls: 'timemd-table timemd-history-table',
 	});
 	const head = table.createEl('thead').createEl('tr');
-	head.createEl('th', { text: 'TIME' });
-	head.createEl('th', { text: 'TITLE / URL' });
-	head.createEl('th', { text: 'DOMAIN' });
+	head.createEl('th', { text: 'Time' });
+	head.createEl('th', { text: 'Title / URL' });
+	head.createEl('th', { text: 'Domain' });
 	head.createEl('th', { text: 'BRC' });
 	const tbody = table.createEl('tbody');
 

@@ -15,7 +15,7 @@ export class AppsView extends TimeMdBaseView {
 	}
 
 	getDisplayText(): string {
-		return 'timemd-visualizor — Apps & Categories';
+		return 'Apps & categories';
 	}
 
 	renderBody(body: HTMLElement): void {

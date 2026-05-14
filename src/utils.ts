@@ -20,6 +20,7 @@ export function formatDurationLong(seconds: number): string {
 export function parseDate(value: unknown): Date | undefined {
 	if (value == null) return undefined;
 	if (value instanceof Date) return value;
+	if (typeof value !== 'string' && typeof value !== 'number') return undefined;
 	const s = String(value).trim();
 	if (!s) return undefined;
 	const d = new Date(s);

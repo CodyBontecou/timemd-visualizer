@@ -49,7 +49,7 @@ export class InputView extends TimeMdBaseView {
 	}
 
 	getDisplayText(): string {
-		return 'timemd-visualizor — Input Tracking';
+		return 'Input tracking';
 	}
 
 	getIcon(): string {
@@ -273,8 +273,9 @@ function drawHeatmapSvg(
 	size: { width: number; height: number },
 ): void {
 	const { width, height } = size;
+	const doc = parent.ownerDocument;
 
-	const root = document.createElementNS(SVG_NS, 'svg');
+	const root = doc.createElementNS(SVG_NS, 'svg');
 	root.setAttribute('width', String(width));
 	root.setAttribute('height', String(height));
 	root.setAttribute('viewBox', `0 0 ${width} ${height}`);
@@ -282,7 +283,7 @@ function drawHeatmapSvg(
 	parent.appendChild(root);
 
 	if (bins.length === 0) {
-		const txt = document.createElementNS(SVG_NS, 'text');
+		const txt = doc.createElementNS(SVG_NS, 'text');
 		txt.setAttribute('x', String(width / 2));
 		txt.setAttribute('y', String(height / 2));
 		txt.setAttribute('text-anchor', 'middle');
@@ -292,7 +293,7 @@ function drawHeatmapSvg(
 		return;
 	}
 
-	const bg = document.createElementNS(SVG_NS, 'rect');
+	const bg = doc.createElementNS(SVG_NS, 'rect');
 	bg.setAttribute('x', '0');
 	bg.setAttribute('y', '0');
 	bg.setAttribute('width', String(width));
@@ -343,14 +344,14 @@ function drawHeatmapSvg(
 
 	for (const b of bins) {
 		const intensity = Math.sqrt(maxSamples > 0 ? b.samples / maxSamples : 0);
-		const rect = document.createElementNS(SVG_NS, 'rect');
+		const rect = doc.createElementNS(SVG_NS, 'rect');
 		rect.setAttribute('x', String(mapX(b.bin_x)));
 		rect.setAttribute('y', String(mapY(b.bin_y)));
 		// Slight overlap eliminates seams between adjacent bins.
 		rect.setAttribute('width', String(binPxW + 0.5));
 		rect.setAttribute('height', String(binPxH + 0.5));
 		rect.setAttribute('fill', heatmapFill(intensity));
-		const title = document.createElementNS(SVG_NS, 'title');
+		const title = doc.createElementNS(SVG_NS, 'title');
 		title.textContent = `(${b.bin_x}, ${b.bin_y}) — ${b.samples.toLocaleString()} samples`;
 		rect.appendChild(title);
 		root.appendChild(rect);
@@ -361,12 +362,12 @@ function drawHeatmapSvg(
 		const cy = mapPxY(c.y);
 		if (cx < offsetX - 2 || cx > offsetX + drawW + 2) continue;
 		if (cy < offsetY - 2 || cy > offsetY + drawH + 2) continue;
-		const dot = document.createElementNS(SVG_NS, 'circle');
+		const dot = doc.createElementNS(SVG_NS, 'circle');
 		dot.setAttribute('cx', String(cx));
 		dot.setAttribute('cy', String(cy));
 		dot.setAttribute('r', '3');
 		dot.setAttribute('class', 'timemd-input-click-dot');
-		const title = document.createElementNS(SVG_NS, 'title');
+		const title = doc.createElementNS(SVG_NS, 'title');
 		const when = c.timestamp.toLocaleString();
 		title.textContent = `${when} · ${c.app_name ?? c.bundle_id ?? 'click'}`;
 		dot.appendChild(title);

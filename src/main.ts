@@ -50,56 +50,56 @@ export default class TimeMdPlugin extends Plugin {
 		this.registerView(VIEW_TYPE_REPORTS, (leaf) => new ReportsView(leaf, this));
 		this.registerView(VIEW_TYPE_INPUT, (leaf) => new InputView(leaf, this));
 
-		this.addRibbonIcon('clock-3', 'timemd-visualizor: Open Overview', () => {
+		this.addRibbonIcon('clock-3', 'Open overview', () => {
 			void this.activateView(VIEW_TYPE_OVERVIEW);
 		});
-		this.addRibbonIcon('keyboard', 'timemd-visualizor: Open Input Tracking', () => {
+		this.addRibbonIcon('keyboard', 'Open input tracking', () => {
 			void this.activateView(VIEW_TYPE_INPUT);
 		});
 
 		this.addCommand({
 			id: 'open-overview',
-			name: 'Open Overview',
+			name: 'Open overview',
 			callback: () => void this.activateView(VIEW_TYPE_OVERVIEW),
 		});
 		this.addCommand({
 			id: 'open-trends',
-			name: 'Open Trends',
+			name: 'Open trends',
 			callback: () => void this.activateView(VIEW_TYPE_TRENDS),
 		});
 		this.addCommand({
 			id: 'open-calendar',
-			name: 'Open Calendar',
+			name: 'Open calendar',
 			callback: () => void this.activateView(VIEW_TYPE_CALENDAR),
 		});
 		this.addCommand({
 			id: 'open-details',
-			name: 'Open Details',
+			name: 'Open details',
 			callback: () => void this.activateView(VIEW_TYPE_DETAILS),
 		});
 		this.addCommand({
 			id: 'open-apps',
-			name: 'Open Apps & Categories',
+			name: 'Open apps & categories',
 			callback: () => void this.activateView(VIEW_TYPE_APPS),
 		});
 		this.addCommand({
 			id: 'open-projects',
-			name: 'Open Projects',
+			name: 'Open projects',
 			callback: () => void this.activateView(VIEW_TYPE_PROJECTS),
 		});
 		this.addCommand({
 			id: 'open-web-history',
-			name: 'Open Web History',
+			name: 'Open web history',
 			callback: () => void this.activateView(VIEW_TYPE_WEB_HISTORY),
 		});
 		this.addCommand({
 			id: 'open-reports',
-			name: 'Open Reports',
+			name: 'Open reports',
 			callback: () => void this.activateView(VIEW_TYPE_REPORTS),
 		});
 		this.addCommand({
 			id: 'open-input-tracking',
-			name: 'Open Input Tracking',
+			name: 'Open input tracking',
 			callback: () => void this.activateView(VIEW_TYPE_INPUT),
 		});
 		this.addCommand({
@@ -141,7 +141,7 @@ export default class TimeMdPlugin extends Plugin {
 	}
 
 	applyColorVars(): void {
-		const root = document.body;
+		const root = activeDocument.body;
 		const heatmapHex = this.settings.heatmapColor || DEFAULT_HEATMAP_COLOR;
 		const rgb = hexToRgb(heatmapHex) ?? { r: 88, g: 101, b: 242 };
 		root.style.setProperty('--timemd-heatmap-rgb', `${rgb.r}, ${rgb.g}, ${rgb.b}`);
@@ -153,7 +153,7 @@ export default class TimeMdPlugin extends Plugin {
 	}
 
 	private clearColorVars(): void {
-		const root = document.body;
+		const root = activeDocument.body;
 		root.style.removeProperty('--timemd-heatmap-rgb');
 		root.style.removeProperty('--timemd-accent');
 	}
@@ -196,6 +196,6 @@ export default class TimeMdPlugin extends Plugin {
 			leaf = workspace.getLeaf('tab');
 			await leaf.setViewState({ type, active: true });
 		}
-		workspace.revealLeaf(leaf);
+		workspace.setActiveLeaf(leaf, { focus: true });
 	}
 }

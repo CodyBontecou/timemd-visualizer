@@ -44,7 +44,7 @@ export class ReportsView extends TimeMdBaseView {
 	}
 
 	getDisplayText(): string {
-		return 'timemd-visualizor — Reports';
+		return 'Reports';
 	}
 
 	getIcon(): string {
@@ -119,12 +119,12 @@ function renderReportsContent(root: HTMLElement, store: DataStore, opts: RenderO
 	// Stats cards
 	renderStats(wrap, store, apps, categories);
 
-	// TIME DISTRIBUTION
+	// Time distribution
 	if (trend.length > 0) {
 		const distSection = wrap.createDiv({ cls: 'timemd-reports-section' });
 		distSection.createEl('div', {
 			cls: 'timemd-reports-section-title',
-			text: 'TIME DISTRIBUTION',
+			text: 'Time distribution',
 		});
 		const distCard = distSection.createDiv({ cls: 'timemd-card' });
 		renderVerticalBars(
@@ -137,13 +137,13 @@ function renderReportsContent(root: HTMLElement, store: DataStore, opts: RenderO
 		);
 	}
 
-	// WEEKDAY AVERAGES
+	// Weekday averages
 	if (trend.length > 0) {
 		const weekdayBars = computeWeekdayAverages(trend);
 		const wkSection = wrap.createDiv({ cls: 'timemd-reports-section' });
 		wkSection.createEl('div', {
 			cls: 'timemd-reports-section-title',
-			text: 'WEEKDAY AVERAGES',
+			text: 'Weekday averages',
 		});
 		const wkCard = wkSection.createDiv({ cls: 'timemd-card' });
 		renderVerticalBars(wkCard, weekdayBars, {
@@ -154,11 +154,11 @@ function renderReportsContent(root: HTMLElement, store: DataStore, opts: RenderO
 		});
 	}
 
-	// REPORT DATA
+	// Report data
 	const tableSection = wrap.createDiv({ cls: 'timemd-reports-section' });
 	tableSection.createEl('div', {
 		cls: 'timemd-reports-section-title',
-		text: 'REPORT DATA',
+		text: 'Report data',
 	});
 	const tableCard = tableSection.createDiv({ cls: 'timemd-card' });
 	renderTable(tableCard, opts.groupBy, rows);
@@ -501,7 +501,7 @@ function formatRangeUpper(start: Date, end: Date): string {
 // --- Inline vertical bar chart ---
 
 function svgEl(tag: string, attrs: Record<string, string | number> = {}): SVGElement {
-	const el = document.createElementNS(SVG_NS, tag);
+	const el = activeDocument.createElementNS(SVG_NS, tag);
 	for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
 	return el;
 }

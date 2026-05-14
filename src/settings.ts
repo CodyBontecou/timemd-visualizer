@@ -134,7 +134,7 @@ export class TimeMdSettingTab extends PluginSettingTab {
 
 function readThemeAccent(): string {
 	try {
-		const v = getComputedStyle(document.body).getPropertyValue('--interactive-accent').trim();
+		const v = activeWindow.getComputedStyle(activeDocument.body).getPropertyValue('--interactive-accent').trim();
 		if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)) return v;
 	} catch {
 		// fall through
