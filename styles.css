@@ -1,5 +1,6 @@
 .timemd-view {
 	padding: 16px 20px 24px;
+	color: var(--text-normal);
 }
 
 .timemd-view-header {
@@ -87,6 +88,7 @@
 	font-size: 1.3em;
 	font-weight: 600;
 	margin-top: 4px;
+	color: var(--text-normal);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -147,6 +149,7 @@
 }
 
 .timemd-bar-label {
+	color: var(--text-normal);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -313,6 +316,7 @@
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 8px;
 	margin: 8px 0;
+	color: var(--text-normal);
 }
 
 .timemd-embed.timemd-embed-bare {
