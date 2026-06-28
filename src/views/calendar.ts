@@ -23,6 +23,17 @@ export class CalendarView extends TimeMdBaseView {
 		const heatmap = store.getHeatmap();
 		const trend = store.getTrend();
 
+		if (trend.length > 0) {
+			const total = trend.reduce((sum, t) => sum + t.total_seconds, 0);
+			const activeDays = trend.filter((t) => t.total_seconds > 0).length;
+			const peak = trend.reduce((best, t) => (best.total_seconds >= t.total_seconds ? best : t), trend[0]!);
+			const statsRow = body.createDiv({ cls: 'timemd-stats-row' });
+			addStat(statsRow, 'Total time', formatDuration(total));
+			addStat(statsRow, 'Active days', String(activeDays));
+			addStat(statsRow, 'Daily avg', formatDuration(total / Math.max(1, trend.length)));
+			addStat(statsRow, 'Peak day', `${formatDateISO(peak.date)} · ${formatDuration(peak.total_seconds)}`);
+		}
+
 		const heatCard = body.createDiv({ cls: 'timemd-card' });
 		heatCard.createEl('h3', { text: 'Weekly heatmap' });
 		if (heatmap.length === 0) {
@@ -53,6 +64,8 @@ export class CalendarView extends TimeMdBaseView {
 		const last = trend[trend.length - 1]!.date;
 		const startMonth = new Date(first.getFullYear(), first.getMonth(), 1);
 		const endMonth = new Date(last.getFullYear(), last.getMonth(), 1);
+
+		renderIntensityLegend(monthCard);
 
 		const monthsWrap = monthCard.createDiv({ cls: 'timemd-months' });
 		const cursor = new Date(startMonth);
@@ -93,4 +106,21 @@ function renderMonth(parent: HTMLElement, month: Date, data: Map<string, number>
 
 function clamp(n: number, min: number, max: number): number {
 	return Math.max(min, Math.min(max, n));
+}
+
+function renderIntensityLegend(parent: HTMLElement): void {
+	const legend = parent.createDiv({ cls: 'timemd-intensity-legend' });
+	legend.createSpan({ cls: 'timemd-intensity-legend-label', text: 'Less' });
+	const rgb = getHeatmapRgb();
+	for (let i = 0; i < 5; i++) {
+		const swatch = legend.createSpan({ cls: 'timemd-intensity-swatch' });
+		swatch.style.background = `rgba(${rgb}, ${0.08 + (i / 4) * 0.92})`;
+	}
+	legend.createSpan({ cls: 'timemd-intensity-legend-label', text: 'More' });
+}
+
+function addStat(row: HTMLElement, label: string, value: string): void {
+	const stat = row.createDiv({ cls: 'timemd-stat' });
+	stat.createDiv({ cls: 'timemd-stat-label', text: label });
+	stat.createDiv({ cls: 'timemd-stat-value', text: value });
 }

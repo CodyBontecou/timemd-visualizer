@@ -17,6 +17,7 @@ import { ReportsView, VIEW_TYPE_REPORTS } from './views/reports';
 import { InputView, VIEW_TYPE_INPUT } from './views/input';
 import { parseBlockParams, TimeMdBlock } from './embed';
 import { hexToRgb } from './utils';
+import { applyColorSchemeVars, clearColorSchemeVars, normalizeColorScheme } from './themePresets';
 
 type ViewType =
 	| typeof VIEW_TYPE_OVERVIEW
@@ -142,20 +143,24 @@ export default class TimeMdPlugin extends Plugin {
 
 	applyColorVars(): void {
 		const root = activeDocument.body;
+		clearColorSchemeVars(root);
+		const colorScheme = normalizeColorScheme(this.settings.colorScheme);
+		if (colorScheme !== 'theme') {
+			applyColorSchemeVars(root, colorScheme);
+		}
+
 		const heatmapHex = this.settings.heatmapColor || DEFAULT_HEATMAP_COLOR;
-		const rgb = hexToRgb(heatmapHex) ?? { r: 88, g: 101, b: 242 };
-		root.style.setProperty('--timemd-heatmap-rgb', `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+		if (colorScheme === 'theme' || heatmapHex !== DEFAULT_HEATMAP_COLOR) {
+			const rgb = hexToRgb(heatmapHex) ?? { r: 88, g: 101, b: 242 };
+			root.style.setProperty('--timemd-heatmap-rgb', `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+		}
 		if (this.settings.accentColor) {
 			root.style.setProperty('--timemd-accent', this.settings.accentColor);
-		} else {
-			root.style.removeProperty('--timemd-accent');
 		}
 	}
 
 	private clearColorVars(): void {
-		const root = activeDocument.body;
-		root.style.removeProperty('--timemd-heatmap-rgb');
-		root.style.removeProperty('--timemd-accent');
+		clearColorSchemeVars(activeDocument.body);
 	}
 
 	refreshAllViews(): void {
@@ -182,6 +187,7 @@ export default class TimeMdPlugin extends Plugin {
 			DEFAULT_SETTINGS,
 			(await this.loadData()) as Partial<TimeMdSettings>,
 		);
+		this.settings.colorScheme = normalizeColorScheme(this.settings.colorScheme);
 	}
 
 	async saveSettings(): Promise<void> {

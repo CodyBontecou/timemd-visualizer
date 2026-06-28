@@ -32,7 +32,7 @@ export class AppsView extends TimeMdBaseView {
 			renderBarList(
 				appsCard,
 				apps.map((a) => ({ label: a.app_name, value: a.total_seconds })),
-				{ formatValue: formatDuration },
+				{ formatValue: formatDuration, showPercent: true },
 			);
 		}
 
@@ -44,7 +44,7 @@ export class AppsView extends TimeMdBaseView {
 			renderBarList(
 				catsCard,
 				categories.map((c) => ({ label: c.category, value: c.total_seconds })),
-				{ formatValue: formatDuration },
+				{ formatValue: formatDuration, showPercent: true },
 			);
 		}
 	}

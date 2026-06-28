@@ -17,11 +17,11 @@ timemd-visualizor auto-detects and parses every format time.md can export:
 
 | View | What it shows |
 |------|---------------|
-| Overview | Today's total, top apps, sparkline, key metrics |
-| Trends | Daily / weekly line chart with period comparison |
-| Calendar | Month grid + 7×24 usage heatmap |
-| Details | Filterable raw-session table |
-| Apps & Categories | Aggregated apps and user-defined categories |
+| Overview | Total, daily average, peak hour, longest session, trend, distribution donut, top apps, heatmap, and web-history overview |
+| Trends | Daily line chart, stacked by-app chart (with Raw Sessions), hourly usage chart, and daily breakdown |
+| Calendar | Stats strip, 7×24 usage heatmap, intensity legend, and month grid |
+| Details | Session stats, duration distribution, daily timeline, and filterable raw-session table |
+| Apps & Categories | Aggregated apps and categories with percentages |
 | Projects | Category groups with donut distribution chart and stats |
 | Web History | Browser history timeline, top domains, hourly activity |
 | Reports | Daily / weekday breakdowns with CSV / JSON / Markdown export |

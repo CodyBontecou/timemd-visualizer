@@ -1,11 +1,13 @@
 import { App, PluginSettingTab, Setting, TFolder } from 'obsidian';
 import type TimeMdPlugin from './main';
+import { normalizeColorScheme, TIME_MD_COLOR_SCHEMES, TimeMdColorScheme } from './themePresets';
 
 export interface TimeMdSettings {
 	exportFolder: string;
 	autoReloadOnStartup: boolean;
 	accentColor: string;
 	heatmapColor: string;
+	colorScheme: TimeMdColorScheme;
 }
 
 export const DEFAULT_ACCENT_COLOR = '';
@@ -16,6 +18,7 @@ export const DEFAULT_SETTINGS: TimeMdSettings = {
 	autoReloadOnStartup: true,
 	accentColor: DEFAULT_ACCENT_COLOR,
 	heatmapColor: DEFAULT_HEATMAP_COLOR,
+	colorScheme: 'theme',
 };
 
 export class TimeMdSettingTab extends PluginSettingTab {
@@ -57,6 +60,21 @@ export class TimeMdSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}),
 			);
+
+		new Setting(containerEl)
+			.setName('Theme preset')
+			.setDesc('Render plugin views with the same color themes available in the time.md macOS app. Individual timemd code blocks can override this with colorScheme or palette.')
+			.addDropdown((dropdown) => {
+				for (const scheme of TIME_MD_COLOR_SCHEMES) {
+					dropdown.addOption(scheme.id, scheme.label);
+				}
+				dropdown.setValue(normalizeColorScheme(this.plugin.settings.colorScheme)).onChange(async (value) => {
+					this.plugin.settings.colorScheme = normalizeColorScheme(value);
+					await this.plugin.saveSettings();
+					this.plugin.applyColorVars();
+					this.plugin.refreshAllViews();
+				});
+			});
 
 		new Setting(containerEl)
 			.setName('Heatmap color')

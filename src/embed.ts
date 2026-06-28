@@ -15,6 +15,7 @@ import {
 	renderTopWordsEmbed,
 	renderTypingIntensityEmbed,
 } from './views/input';
+import { applyColorSchemeVars, clearColorSchemeVars, normalizeColorScheme, TimeMdColorScheme } from './themePresets';
 
 export type EmbedView =
 	| 'overview'
@@ -68,6 +69,7 @@ export interface BlockParams {
 	legend?: boolean;
 	label?: boolean;
 	bare?: boolean;
+	colorScheme?: TimeMdColorScheme;
 }
 
 const WEB_HISTORY_TABS: WebHistoryTab[] = ['timeline', 'domains', 'activity'];
@@ -186,12 +188,20 @@ export function parseBlockParams(source: string): BlockParams {
 				else if (v === 'false' || v === 'no' || v === '0') params.label = false;
 				break;
 			}
-			case 'bare': {
+				case 'bare': {
 				const v = value.toLowerCase();
 				if (v === 'true' || v === 'yes' || v === '1') params.bare = true;
 				else if (v === 'false' || v === 'no' || v === '0') params.bare = false;
 				break;
 			}
+			case 'colorscheme':
+			case 'color-scheme':
+			case 'color_scheme':
+			case 'palette':
+			case 'themepreset':
+			case 'theme-preset':
+				params.colorScheme = normalizeColorScheme(value);
+				break;
 		}
 	}
 	return params;
@@ -213,11 +223,48 @@ export class TimeMdBlock extends MarkdownRenderChild {
 
 	private render(): void {
 		this.containerEl.empty();
+		if (!this.params.colorScheme && 'settings' in this.host) {
+			this.params.colorScheme = normalizeColorScheme((this.host as { settings?: { colorScheme?: string } }).settings?.colorScheme);
+		}
 		renderEmbed(this.containerEl, this.host.store, this.params);
 	}
 }
 
+const COLOR_SCHEME_CSS_VARS = [
+	'--background-primary', '--background-primary-alt', '--background-secondary', '--background-modifier-border',
+	'--background-modifier-hover', '--text-normal', '--text-muted', '--text-faint', '--interactive-accent',
+	'--color-accent', '--text-accent', '--timemd-accent', '--timemd-accent-hover', '--timemd-accent-muted',
+	'--timemd-danger', '--timemd-warning', '--timemd-positive', '--timemd-app-palette', '--timemd-heatmap-rgb',
+];
+
+function temporarilyApplyBodyColorScheme(colorScheme: TimeMdColorScheme): () => void {
+	if (colorScheme === 'theme') return () => undefined;
+	const body = activeDocument.body;
+	const previous = new Map<string, string>();
+	for (const name of COLOR_SCHEME_CSS_VARS) previous.set(name, body.style.getPropertyValue(name));
+	applyColorSchemeVars(body, colorScheme);
+	return () => {
+		for (const name of COLOR_SCHEME_CSS_VARS) {
+			const value = previous.get(name) ?? '';
+			if (value) body.style.setProperty(name, value);
+			else body.style.removeProperty(name);
+		}
+	};
+}
+
 export function renderEmbed(el: HTMLElement, store: DataStore, params: BlockParams): void {
+	const colorScheme = normalizeColorScheme(params.colorScheme);
+	clearColorSchemeVars(el);
+	if (colorScheme !== 'theme') applyColorSchemeVars(el, colorScheme);
+	const restoreBodyScheme = temporarilyApplyBodyColorScheme(colorScheme);
+	try {
+		renderEmbedInner(el, store, params);
+	} finally {
+		restoreBodyScheme();
+	}
+}
+
+function renderEmbedInner(el: HTMLElement, store: DataStore, params: BlockParams): void {
 	el.addClass('timemd-embed');
 	if (params.bare) el.addClass('timemd-embed-bare');
 	if (!store.hasData()) {
