@@ -80,6 +80,18 @@ export interface HeatmapCell {
 	total_seconds: number;
 }
 
+export interface DateHourCell {
+	date: Date;
+	hour: number;
+	total_seconds: number;
+}
+
+export interface DailyAppTrendRow {
+	date: Date;
+	app_name: string;
+	total_seconds: number;
+}
+
 export interface TypedWordRow {
 	word: string;
 	count: number;
