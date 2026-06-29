@@ -80,6 +80,19 @@ export interface HeatmapCell {
 	total_seconds: number;
 }
 
+export interface ContextSwitchRow {
+	date: string;
+	hour: number;
+	switch_count: number;
+}
+
+export interface AppTransitionRow {
+	from_app: string;
+	to_app: string;
+	count: number;
+	percentage: number;
+}
+
 export interface TypedWordRow {
 	word: string;
 	count: number;
