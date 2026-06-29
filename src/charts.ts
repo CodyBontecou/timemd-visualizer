@@ -683,3 +683,187 @@ export function renderHourStrip(
 		root.appendChild(t);
 	}
 }
+
+export interface AppHourHeatmapRow {
+	label: string;
+	hours: number[];
+	color?: string;
+}
+
+export function renderAppHourHeatmap(
+	parent: HTMLElement,
+	rows: AppHourHeatmapRow[],
+	opts: { formatValue?: (v: number) => string; maxRows?: number } = {},
+): void {
+	const fmt = opts.formatValue ?? ((v: number) => String(v));
+	const visibleRows = rows.slice(0, opts.maxRows ?? rows.length);
+	const wrap = parent.createDiv({ cls: 'timemd-app-rhythm-wrap' });
+	if (visibleRows.length === 0) {
+		wrap.createDiv({ cls: 'timemd-empty-inline', text: 'No app/hour data' });
+		return;
+	}
+
+	const cellW = 24;
+	const cellH = visibleRows.length > 8 ? 16 : 20;
+	const gap = 2;
+	const pad = { l: 134, r: 12, t: 30, b: 8 };
+	const width = pad.l + 24 * (cellW + gap) - gap + pad.r;
+	const height = pad.t + visibleRows.length * (cellH + gap) - gap + pad.b;
+	const max = Math.max(1, ...visibleRows.flatMap((row) => row.hours));
+	const root = svg('svg', {
+		width,
+		height,
+		class: 'timemd-chart timemd-app-rhythm-chart',
+		viewBox: `0 0 ${width} ${height}`,
+	});
+	wrap.appendChild(root);
+
+	for (let h = 0; h < 24; h += 3) {
+		const label = svg('text', {
+			x: pad.l + h * (cellW + gap) + cellW / 2,
+			y: 18,
+			'text-anchor': 'middle',
+			class: 'timemd-axis-label',
+		});
+		label.textContent = `${h}:00`;
+		root.appendChild(label);
+	}
+
+	for (let rowIndex = 0; rowIndex < visibleRows.length; rowIndex++) {
+		const row = visibleRows[rowIndex]!;
+		const y = pad.t + rowIndex * (cellH + gap);
+		const label = svg('text', {
+			x: pad.l - 10,
+			y: y + cellH / 2 + 4,
+			'text-anchor': 'end',
+			class: 'timemd-axis-label timemd-app-rhythm-label',
+		});
+		label.textContent = truncateLabel(row.label, 22);
+		const labelTitle = svg('title');
+		labelTitle.textContent = row.label;
+		label.appendChild(labelTitle);
+		root.appendChild(label);
+
+		for (let h = 0; h < 24; h++) {
+			const value = row.hours[h] ?? 0;
+			const rect = svg('rect', {
+				x: pad.l + h * (cellW + gap),
+				y,
+				width: cellW,
+				height: cellH,
+				rx: 3,
+				fill: row.color ?? colorForLabel(row.label),
+				'fill-opacity': 0.07 + (value / max) * 0.93,
+				class: 'timemd-app-rhythm-cell',
+			});
+			const title = svg('title');
+			title.textContent = `${row.label} · ${h}:00 — ${fmt(value)}`;
+			rect.appendChild(title);
+			root.appendChild(rect);
+		}
+	}
+}
+
+export interface ScatterPoint {
+	label: string;
+	x: number;
+	y: number;
+	size: number;
+	color?: string;
+	title?: string;
+}
+
+export function renderScatterPlot(
+	parent: HTMLElement,
+	points: ScatterPoint[],
+	opts: {
+		width?: number;
+		height?: number;
+		formatX?: (v: number) => string;
+		formatY?: (v: number) => string;
+		xLabel?: string;
+		yLabel?: string;
+	} = {},
+): void {
+	const width = opts.width ?? 720;
+	const height = opts.height ?? 300;
+	const pad = { l: 58, r: 18, t: 18, b: 48 };
+	const innerW = width - pad.l - pad.r;
+	const innerH = height - pad.t - pad.b;
+	const fmtX = opts.formatX ?? ((v: number) => String(v));
+	const fmtY = opts.formatY ?? ((v: number) => String(v));
+	const root = svg('svg', {
+		width,
+		height,
+		class: 'timemd-chart timemd-scatter-chart',
+		viewBox: `0 0 ${width} ${height}`,
+		preserveAspectRatio: 'none',
+	});
+	parent.appendChild(root);
+
+	if (points.length === 0) {
+		const txt = svg('text', { x: width / 2, y: height / 2, 'text-anchor': 'middle', class: 'timemd-axis-label' });
+		txt.textContent = 'No scatter data';
+		root.appendChild(txt);
+		return;
+	}
+
+	const maxX = niceMax(Math.max(1, ...points.map((p) => p.x)));
+	const maxY = niceMax(Math.max(1, ...points.map((p) => p.y)));
+	const maxSize = Math.max(1, ...points.map((p) => p.size));
+	const xAt = (v: number) => pad.l + (Math.max(0, Math.min(maxX, v)) / maxX) * innerW;
+	const yAt = (v: number) => pad.t + (1 - Math.max(0, Math.min(maxY, v)) / maxY) * innerH;
+
+	for (let i = 0; i <= 4; i++) {
+		const t = i / 4;
+		const x = pad.l + t * innerW;
+		const y = pad.t + (1 - t) * innerH;
+		root.appendChild(svg('line', { x1: x, x2: x, y1: pad.t, y2: pad.t + innerH, class: 'timemd-chart-grid' }));
+		root.appendChild(svg('line', { x1: pad.l, x2: pad.l + innerW, y1: y, y2: y, class: 'timemd-chart-grid' }));
+		const xLbl = svg('text', { x, y: pad.t + innerH + 18, 'text-anchor': 'middle', class: 'timemd-axis-label' });
+		xLbl.textContent = fmtX(maxX * t);
+		root.appendChild(xLbl);
+		const yLbl = svg('text', { x: pad.l - 8, y: y + 4, 'text-anchor': 'end', class: 'timemd-axis-label' });
+		yLbl.textContent = fmtY(maxY * t);
+		root.appendChild(yLbl);
+	}
+
+	for (const point of points) {
+		const radius = 4 + Math.sqrt(Math.max(0, point.size) / maxSize) * 10;
+		const circle = svg('circle', {
+			cx: xAt(point.x),
+			cy: yAt(point.y),
+			r: radius,
+			fill: point.color ?? 'var(--timemd-accent, var(--interactive-accent))',
+			'fill-opacity': 0.78,
+			stroke: 'var(--background-primary)',
+			'stroke-width': 1.5,
+			class: 'timemd-scatter-point',
+		});
+		const title = svg('title');
+		title.textContent = point.title ?? `${point.label}: ${fmtX(point.x)}, ${fmtY(point.y)}`;
+		circle.appendChild(title);
+		root.appendChild(circle);
+	}
+
+	if (opts.xLabel) {
+		const xAxis = svg('text', { x: pad.l + innerW / 2, y: height - 8, 'text-anchor': 'middle', class: 'timemd-axis-label' });
+		xAxis.textContent = opts.xLabel;
+		root.appendChild(xAxis);
+	}
+	if (opts.yLabel) {
+		const yAxis = svg('text', {
+			x: 14,
+			y: pad.t + innerH / 2,
+			'text-anchor': 'middle',
+			class: 'timemd-axis-label',
+			transform: `rotate(-90 14 ${pad.t + innerH / 2})`,
+		});
+		yAxis.textContent = opts.yLabel;
+		root.appendChild(yAxis);
+	}
+}
+
+function truncateLabel(label: string, maxChars: number): string {
+	return label.length > maxChars ? `${label.slice(0, Math.max(0, maxChars - 1))}…` : label;
+}
