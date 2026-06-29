@@ -2213,3 +2213,156 @@
 .timemd-archetype-table td:nth-child(7) {
 	font-variant-numeric: tabular-nums;
 }
+
+/* Period comparison */
+.timemd-period-card {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.timemd-period-stats {
+	grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.timemd-period-before-after,
+.timemd-period-delta-col {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.timemd-period-bar-row,
+.timemd-period-delta-row {
+	display: grid;
+	grid-template-columns: minmax(96px, 1fr) minmax(120px, 2fr) minmax(76px, auto);
+	align-items: center;
+	gap: 10px;
+	font-size: 0.88em;
+}
+
+.timemd-period-bar-label,
+.timemd-period-delta-app {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.timemd-period-bar-track,
+.timemd-period-delta-track {
+	height: 10px;
+	border-radius: 999px;
+	background: var(--background-modifier-border);
+	overflow: hidden;
+}
+
+.timemd-period-bar-fill,
+.timemd-period-delta-fill {
+	height: 100%;
+	border-radius: 999px;
+	background: var(--timemd-accent, var(--interactive-accent));
+}
+
+.timemd-period-bar-value,
+.timemd-period-delta-value {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+.timemd-period-delta-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 16px;
+}
+
+.timemd-period-delta-title {
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.timemd-period-delta-positive .timemd-period-delta-fill {
+	background: var(--color-green, #22c55e);
+}
+
+.timemd-period-delta-negative .timemd-period-delta-fill {
+	background: var(--color-red, #ef4444);
+}
+
+/* Calendar annotations */
+.timemd-contribution-cell,
+.timemd-month-day {
+	cursor: pointer;
+}
+
+.timemd-day-marker-ring {
+	fill: none;
+	stroke: var(--text-warning, #f59e0b);
+	stroke-width: 1.4;
+	pointer-events: none;
+}
+
+.timemd-day-marker-ring.is-selected {
+	stroke: var(--interactive-accent);
+	stroke-width: 2;
+}
+
+.timemd-day-marker-dot {
+	fill: var(--interactive-accent);
+	stroke: var(--background-secondary);
+	stroke-width: 1;
+	pointer-events: none;
+}
+
+.timemd-month-day {
+	position: relative;
+	border: 1px solid transparent;
+}
+
+.timemd-month-day.has-high-context {
+	box-shadow: inset 0 0 0 1.5px var(--text-warning, #f59e0b);
+}
+
+.timemd-month-day.is-selected {
+	border-color: var(--interactive-accent);
+	box-shadow: inset 0 0 0 2px var(--interactive-accent);
+}
+
+.timemd-month-day-dot {
+	position: absolute;
+	right: 3px;
+	bottom: 3px;
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: var(--interactive-accent);
+	box-shadow: 0 0 0 1px var(--background-secondary);
+}
+
+.timemd-date-hour-cell.has-high-context {
+	stroke: var(--text-warning, #f59e0b);
+	stroke-width: 0.8;
+}
+
+.timemd-date-hour-cell.has-focus-block {
+	stroke: var(--interactive-accent);
+	stroke-width: 0.8;
+}
+
+.timemd-calendar-day-detail-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+.timemd-calendar-day-detail-header h3 {
+	margin: 0;
+}
+
+.timemd-calendar-detail-subtitle {
+	margin: 12px 0 6px;
+	font-weight: 600;
+	color: var(--text-normal);
+}

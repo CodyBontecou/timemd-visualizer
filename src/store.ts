@@ -12,6 +12,7 @@ import {
 	HeatmapCell,
 	IntensityPoint,
 	MatrixCell,
+	PeriodComparisonMetrics,
 	RawKeystroke,
 	RawMouseEvent,
 	Report,
@@ -263,6 +264,51 @@ export class DataStore extends Events {
 			}
 		}
 		return [...map.values()].sort((a, b) => a.date.localeCompare(b.date) || a.hour - b.hour);
+	}
+
+	getPeriodComparison(): PeriodComparisonMetrics {
+		let currentTotal = 0;
+		let previousTotal = 0;
+		let sawCurrent = false;
+		let sawPrevious = false;
+		let explicitPercent: number | undefined;
+		const appDeltas = new Map<string, number>();
+
+		for (const section of this.allSections('period_comparison')) {
+			for (const row of section.rows) {
+				const metricRaw = String(row['metric'] ?? '').trim();
+				if (!metricRaw) continue;
+				const metric = normalizeMetricName(metricRaw);
+				const value = toNumber(row['value']);
+				if (metric === 'current_total_seconds') {
+					currentTotal += value;
+					sawCurrent = true;
+				} else if (metric === 'previous_total_seconds') {
+					previousTotal += value;
+					sawPrevious = true;
+				} else if (metric === 'percent_change') {
+					explicitPercent = value;
+				} else if (metric.startsWith('app_delta:')) {
+					const appName = cleanName(metricRaw.slice(metricRaw.indexOf(':') + 1));
+					if (!appName) continue;
+					appDeltas.set(appName, (appDeltas.get(appName) ?? 0) + value);
+				}
+			}
+		}
+
+		let percentChange = explicitPercent;
+		if (sawCurrent && sawPrevious && previousTotal !== 0) {
+			percentChange = ((currentTotal - previousTotal) / previousTotal) * 100;
+		}
+
+		return {
+			current_total_seconds: sawCurrent ? currentTotal : undefined,
+			previous_total_seconds: sawPrevious ? previousTotal : undefined,
+			percent_change: percentChange,
+			app_deltas: [...appDeltas.entries()]
+				.map(([app_name, delta_seconds]) => ({ app_name, delta_seconds }))
+				.sort((a, b) => Math.abs(b.delta_seconds) - Math.abs(a.delta_seconds)),
+		};
 	}
 
 	getAppTransitions(): AppTransitionRow[] {
