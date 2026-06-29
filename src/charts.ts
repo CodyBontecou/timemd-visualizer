@@ -1,4 +1,4 @@
-import { DateHourCell } from './types';
+import { AppTransitionRow, DateHourCell } from './types';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -328,6 +328,256 @@ export function renderStackedBarChart(
 		t.textContent = rows[i]!.label;
 		root.appendChild(t);
 	}
+}
+
+export interface TransitionSankeyOptions {
+	width?: number;
+	height?: number;
+	maxApps?: number;
+	maxTransitions?: number;
+	formatApp?: (app: string) => string;
+}
+
+interface SankeyLink {
+	from: string;
+	to: string;
+	count: number;
+	percentage: number;
+}
+
+interface SankeyNode {
+	key: string;
+	total: number;
+	x: number;
+	y: number;
+	height: number;
+	color: string;
+}
+
+const OTHER_APP_LABEL = 'Other';
+
+export function renderTransitionSankey(
+	parent: HTMLElement,
+	transitions: AppTransitionRow[],
+	opts: TransitionSankeyOptions = {},
+): void {
+	const width = opts.width ?? 720;
+	const height = opts.height ?? 260;
+	const pad = { l: 18, r: 18, t: 28, b: 14 };
+	const labelW = 118;
+	const nodeW = 12;
+	const leftNodeX = pad.l + labelW;
+	const rightNodeX = width - pad.r - labelW - nodeW;
+	const innerH = height - pad.t - pad.b;
+	const fmtApp = opts.formatApp ?? ((app: string) => app || 'Unknown');
+	const root = svg('svg', {
+		width,
+		height,
+		class: 'timemd-chart timemd-transition-sankey',
+		viewBox: `0 0 ${width} ${height}`,
+	});
+	parent.appendChild(root);
+
+	const links = buildTransitionSankeyLinks(transitions, opts.maxApps ?? 8, opts.maxTransitions ?? 18);
+	if (links.length === 0) {
+		const txt = svg('text', { x: width / 2, y: height / 2, 'text-anchor': 'middle', class: 'timemd-axis-label' });
+		txt.textContent = 'No transition data';
+		root.appendChild(txt);
+		return;
+	}
+
+	const leftTotals = sumLinksBy(links, 'from');
+	const rightTotals = sumLinksBy(links, 'to');
+	const leftNodes = layoutSankeyNodes(leftTotals, leftNodeX, pad.t, innerH, true);
+	const rightNodes = layoutSankeyNodes(rightTotals, rightNodeX, pad.t, innerH, false);
+	const sourceOffsets = new Map<string, number>();
+	const targetOffsets = new Map<string, number>();
+
+	const headingFrom = svg('text', { x: leftNodeX, y: 13, 'text-anchor': 'middle', class: 'timemd-axis-label timemd-sankey-heading' });
+	headingFrom.textContent = 'From';
+	root.appendChild(headingFrom);
+	const headingTo = svg('text', { x: rightNodeX + nodeW, y: 13, 'text-anchor': 'middle', class: 'timemd-axis-label timemd-sankey-heading' });
+	headingTo.textContent = 'To';
+	root.appendChild(headingTo);
+
+	const sortedLinks = [...links].sort((a, b) => b.count - a.count);
+	for (const link of sortedLinks) {
+		const source = leftNodes.get(link.from);
+		const target = rightNodes.get(link.to);
+		if (!source || !target) continue;
+		const sourceH = (link.count / Math.max(1, source.total)) * source.height;
+		const targetH = (link.count / Math.max(1, target.total)) * target.height;
+		const sourceOffset = sourceOffsets.get(link.from) ?? 0;
+		const targetOffset = targetOffsets.get(link.to) ?? 0;
+		const y1 = source.y + sourceOffset + sourceH / 2;
+		const y2 = target.y + targetOffset + targetH / 2;
+		sourceOffsets.set(link.from, sourceOffset + sourceH);
+		targetOffsets.set(link.to, targetOffset + targetH);
+		const strokeW = Math.max(1.5, Math.min(sourceH, targetH));
+		const midX = (leftNodeX + nodeW + rightNodeX) / 2;
+		const path = svg('path', {
+			d: `M ${leftNodeX + nodeW} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${rightNodeX} ${y2}`,
+			fill: 'none',
+			stroke: colorForLabel(link.from),
+			'stroke-width': strokeW,
+			class: 'timemd-sankey-link',
+		});
+		const title = svg('title');
+		title.textContent = `${fmtApp(link.from)} → ${fmtApp(link.to)} · ${link.count.toLocaleString()} transitions · ${link.percentage.toFixed(1)}%`;
+		path.appendChild(title);
+		root.appendChild(path);
+	}
+
+	drawSankeyNodes(root, leftNodes, fmtApp, leftNodeX, nodeW, 'left');
+	drawSankeyNodes(root, rightNodes, fmtApp, rightNodeX, nodeW, 'right');
+}
+
+function buildTransitionSankeyLinks(transitions: AppTransitionRow[], maxApps: number, maxTransitions: number): SankeyLink[] {
+	const valid = transitions
+		.filter((row) => row.count > 0)
+		.sort((a, b) => b.count - a.count);
+	if (valid.length === 0) return [];
+
+	const appTotals = new Map<string, number>();
+	let totalCount = 0;
+	let totalPercentage = 0;
+	for (const row of valid) {
+		const from = cleanAppLabel(row.from_app);
+		const to = cleanAppLabel(row.to_app);
+		appTotals.set(from, (appTotals.get(from) ?? 0) + row.count);
+		appTotals.set(to, (appTotals.get(to) ?? 0) + row.count);
+		totalCount += row.count;
+		totalPercentage += row.percentage;
+	}
+
+	const topApps = new Set(
+		[...appTotals.entries()]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, Math.max(1, maxApps))
+			.map(([app]) => app),
+	);
+	const usePercentages = totalPercentage > 0;
+	const aggregate = new Map<string, SankeyLink>();
+	for (const row of valid) {
+		const rawFrom = cleanAppLabel(row.from_app);
+		const rawTo = cleanAppLabel(row.to_app);
+		const from = topApps.has(rawFrom) ? rawFrom : OTHER_APP_LABEL;
+		const to = topApps.has(rawTo) ? rawTo : OTHER_APP_LABEL;
+		const key = `${from}\u0000${to}`;
+		const existing = aggregate.get(key);
+		const percentage = usePercentages ? row.percentage : (row.count / Math.max(1, totalCount)) * 100;
+		if (existing) {
+			existing.count += row.count;
+			existing.percentage += percentage;
+		} else {
+			aggregate.set(key, { from, to, count: row.count, percentage });
+		}
+	}
+
+	const links = [...aggregate.values()].sort((a, b) => b.count - a.count);
+	if (links.length <= maxTransitions) return links;
+
+	const keepCount = Math.max(1, maxTransitions - 1);
+	const visible = links.slice(0, keepCount);
+	const rest = links.slice(keepCount);
+	const other = rest.reduce<SankeyLink>((acc, link) => ({
+		from: OTHER_APP_LABEL,
+		to: OTHER_APP_LABEL,
+		count: acc.count + link.count,
+		percentage: acc.percentage + link.percentage,
+	}), { from: OTHER_APP_LABEL, to: OTHER_APP_LABEL, count: 0, percentage: 0 });
+	if (other.count > 0) visible.push(other);
+	return visible;
+}
+
+function sumLinksBy(links: SankeyLink[], side: 'from' | 'to'): Map<string, number> {
+	const totals = new Map<string, number>();
+	for (const link of links) {
+		const key = side === 'from' ? link.from : link.to;
+		totals.set(key, (totals.get(key) ?? 0) + link.count);
+	}
+	return totals;
+}
+
+function layoutSankeyNodes(totals: Map<string, number>, x: number, top: number, height: number, leftSide: boolean): Map<string, SankeyNode> {
+	const entries = [...totals.entries()].sort((a, b) => {
+		if (a[0] === OTHER_APP_LABEL) return 1;
+		if (b[0] === OTHER_APP_LABEL) return -1;
+		return b[1] - a[1];
+	});
+	const gap = entries.length > 1 ? 10 : 0;
+	const available = Math.max(1, height - gap * Math.max(0, entries.length - 1));
+	const total = Math.max(1, entries.reduce((sum, [, value]) => sum + value, 0));
+	let heights = entries.map(([, value]) => Math.max(6, (value / total) * available));
+	const heightSum = heights.reduce((sum, value) => sum + value, 0);
+	if (heightSum > available) heights = heights.map((value) => Math.max(2, value * (available / heightSum)));
+	const used = heights.reduce((sum, value) => sum + value, 0) + gap * Math.max(0, entries.length - 1);
+	let y = top + Math.max(0, (height - used) / 2);
+	const nodes = new Map<string, SankeyNode>();
+	for (let i = 0; i < entries.length; i++) {
+		const entry = entries[i];
+		if (!entry) continue;
+		const [key, totalValue] = entry;
+		const nodeHeight = heights[i] ?? 2;
+		nodes.set(key, {
+			key,
+			total: totalValue,
+			x,
+			y,
+			height: nodeHeight,
+			color: colorForLabel(leftSide ? key : `${key}:to`),
+		});
+		y += nodeHeight + gap;
+	}
+	return nodes;
+}
+
+function drawSankeyNodes(
+	root: SVGElement,
+	nodes: Map<string, SankeyNode>,
+	formatApp: (app: string) => string,
+	x: number,
+	nodeW: number,
+	side: 'left' | 'right',
+): void {
+	for (const node of nodes.values()) {
+		const rect = svg('rect', {
+			x,
+			y: node.y,
+			width: nodeW,
+			height: Math.max(2, node.height),
+			rx: 3,
+			fill: node.color,
+			class: 'timemd-sankey-node',
+		});
+		const title = svg('title');
+		title.textContent = `${formatApp(node.key)} · ${node.total.toLocaleString()} transitions`;
+		rect.appendChild(title);
+		root.appendChild(rect);
+
+		const label = svg('text', {
+			x: side === 'left' ? x - 8 : x + nodeW + 8,
+			y: node.y + node.height / 2 + 4,
+			'text-anchor': side === 'left' ? 'end' : 'start',
+			class: 'timemd-axis-label timemd-sankey-label',
+		});
+		label.textContent = truncateSvgLabel(formatApp(node.key), 18);
+		const labelTitle = svg('title');
+		labelTitle.textContent = formatApp(node.key);
+		label.appendChild(labelTitle);
+		root.appendChild(label);
+	}
+}
+
+function cleanAppLabel(app: string): string {
+	const trimmed = app.trim();
+	return trimmed || 'Unknown';
+}
+
+function truncateSvgLabel(label: string, maxLength: number): string {
+	if (label.length <= maxLength) return label;
+	if (maxLength <= 1) return '…';
+	return `${label.slice(0, maxLength - 1)}…`;
 }
 
 function niceMax(v: number): number {

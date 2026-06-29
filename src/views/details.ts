@@ -1,5 +1,5 @@
 import { WorkspaceLeaf } from 'obsidian';
-import { colorForLabel, renderVerticalBarChart } from '../charts';
+import { colorForLabel, renderTransitionSankey, renderVerticalBarChart } from '../charts';
 import { AppTransitionRow, ContextSwitchRow, SessionRow } from '../types';
 import { formatDateISO, formatDuration } from '../utils';
 import { TimeMdBaseView, TimeMdHost } from './base';
@@ -85,8 +85,9 @@ export class DetailsView extends TimeMdBaseView {
 		switchCard.createEl('h3', { text: 'Context switch intensity' });
 		renderContextSwitchChart(switchCard, contextSwitches);
 
-		const transitionsCard = vizGrid.createDiv({ cls: 'timemd-card' });
+		const transitionsCard = vizGrid.createDiv({ cls: 'timemd-card timemd-transitions-card' });
 		transitionsCard.createEl('h3', { text: 'Top app transitions' });
+		renderTransitionSankey(transitionsCard, appTransitions, { formatApp: displayAppName });
 		renderAppTransitions(transitionsCard, appTransitions);
 
 		const toolbar = body.createDiv({ cls: 'timemd-toolbar' });
