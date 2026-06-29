@@ -41,7 +41,7 @@ export function coerceNumber(value: unknown): number | string {
 export function coerceRowValue(value: unknown, fieldName?: string): number | string {
 	if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
 	if (value == null) return isNumericField(fieldName) ? 0 : '';
-	if (typeof value !== 'string') return String(value);
+	if (typeof value !== 'string') return stringifyRowValue(value);
 	const trimmed = value.trim();
 	if (!trimmed) return isNumericField(fieldName) ? 0 : trimmed;
 	if (isNumericString(trimmed)) return Number(trimmed);
@@ -61,7 +61,9 @@ export function toFiniteNumber(value: unknown, fallback = 0): number {
 
 export function parseDateRangeText(value: unknown): { start?: Date; end?: Date } {
 	if (value == null) return {};
-	const text = stripWikiLinks(String(value)).trim();
+	if (value instanceof Date) return { start: value, end: value };
+	if (typeof value !== 'string' && typeof value !== 'number') return {};
+	const text = stripWikiLinks(`${value}`).trim();
 	if (!text) return {};
 
 	const parts = splitDateRange(text);
@@ -110,6 +112,13 @@ function parseFilterString(filters: string): Map<string, string> {
 		if (key && value) out.set(key, value);
 	}
 	return out;
+}
+
+function stringifyRowValue(value: unknown): string {
+	if (typeof value === 'boolean' || typeof value === 'bigint') return `${value}`;
+	if (typeof value === 'symbol') return value.description ?? '';
+	if (value instanceof Date) return value.toISOString();
+	return JSON.stringify(value) ?? '';
 }
 
 function isNumericField(fieldName: string | undefined): boolean {

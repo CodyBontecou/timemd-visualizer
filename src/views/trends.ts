@@ -265,12 +265,12 @@ function buildCategoryBalance(
 ): CategoryBalanceResult {
 	const exactCells = chooseCategoryMatrixCells(dailyMatrix, hourlyMatrix);
 	if (exactCells.length > 0) {
-		const totals = sumByLabel(exactCells.map((cell) => ({ label: cell.category!, value: cell.total_seconds })));
+		const totals = sumByLabel(exactCells.map((cell) => ({ label: cell.category, value: cell.total_seconds })));
 		const topCategories = topLabelsFromTotals(totals, 6);
 		const dayMap = new Map<string, Map<string, number>>();
 		for (const cell of exactCells) {
-			const day = formatDateISO(cell.date!);
-			const bucket = topCategories.includes(cell.category!) ? cell.category! : 'Other';
+			const day = formatDateISO(cell.date);
+			const bucket = topCategories.includes(cell.category) ? cell.category : 'Other';
 			const row = dayMap.get(day) ?? new Map<string, number>();
 			row.set(bucket, (row.get(bucket) ?? 0) + cell.total_seconds);
 			dayMap.set(day, row);
@@ -546,8 +546,8 @@ function buildTopCategoryByDay(dailyMatrix: MatrixCell[], hourlyMatrix: MatrixCe
 	const totalsByDay = new Map<string, number>();
 	const byDayCategory = new Map<string, Map<string, number>>();
 	for (const cell of cells) {
-		const day = formatDateISO(cell.date!);
-		const category = cell.category!;
+		const day = formatDateISO(cell.date);
+		const category = cell.category;
 		totalsByDay.set(day, (totalsByDay.get(day) ?? 0) + cell.total_seconds);
 		const row = byDayCategory.get(day) ?? new Map<string, number>();
 		row.set(category, (row.get(category) ?? 0) + cell.total_seconds);
