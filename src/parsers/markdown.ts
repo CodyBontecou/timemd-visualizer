@@ -1,5 +1,13 @@
 import { Report, ReportMetadata, ReportSection, Row } from '../types';
-import { canonicalSectionName, coerceNumber, parseDate, stripLeadingEmoji, stripWikiLinks } from '../utils';
+import {
+	applyFilterMetadata,
+	canonicalSectionName,
+	coerceRowValue,
+	parseDate,
+	parseDateRangeText,
+	stripLeadingEmoji,
+	stripWikiLinks,
+} from '../utils';
 
 export function parseMarkdown(content: string, path: string): Report {
 	return parseMarkdownBody(content, path, 'markdown');
@@ -35,16 +43,33 @@ export function parseMarkdownBody(
 		}
 		const metaRange = line.match(/\*\*Date Range:\*\*\s*(.+)/);
 		if (metaRange && metaRange[1]) {
-			const v = stripWikiLinks(metaRange[1]).trim();
-			const parts = v.split(/[→-]+/).map((s) => s.trim()).filter(Boolean);
-			if (parts[0]) metadata.dateRangeStart = parseDate(parts[0]) ?? metadata.dateRangeStart;
-			if (parts[1]) metadata.dateRangeEnd = parseDate(parts[1]) ?? metadata.dateRangeEnd;
+			const range = parseDateRangeText(metaRange[1]);
+			metadata.dateRangeStart = range.start ?? metadata.dateRangeStart;
+			metadata.dateRangeEnd = range.end ?? metadata.dateRangeEnd;
 			i++;
 			continue;
 		}
 		const metaGran = line.match(/\*\*Granularity:\*\*\s*(.+)/);
 		if (metaGran && metaGran[1]) {
-			metadata.granularity = metaGran[1].trim();
+			metadata.granularity = stripWikiLinks(metaGran[1]).trim();
+			i++;
+			continue;
+		}
+		const metaFilters = line.match(/\*\*Filters:\*\*\s*(.+)/);
+		if (metaFilters && metaFilters[1]) {
+			metadata.filters = stripWikiLinks(metaFilters[1]).trim();
+			i++;
+			continue;
+		}
+		const metaTimezone = line.match(/\*\*Timezone:\*\*\s*(.+)/);
+		if (metaTimezone && metaTimezone[1]) {
+			metadata.timezone = stripWikiLinks(metaTimezone[1]).trim();
+			i++;
+			continue;
+		}
+		const metaSchema = line.match(/\*\*Schema Version:\*\*\s*(.+)/);
+		if (metaSchema && metaSchema[1]) {
+			metadata.schemaVersion = stripWikiLinks(metaSchema[1]).trim();
 			i++;
 			continue;
 		}
@@ -78,6 +103,7 @@ export function parseMarkdownBody(
 		i++;
 	}
 
+	applyFilterMetadata(metadata);
 	return { sourcePath: path, sourceFormat: format, metadata, sections };
 }
 
@@ -104,7 +130,7 @@ function parseTable(
 			let v = cells[j] ?? '';
 			v = stripWikiLinks(v);
 			v = v.replace(/\\\|/g, '|').trim();
-			row[h] = coerceNumber(v);
+			row[h] = coerceRowValue(v, h);
 		});
 		rows.push(row);
 		i++;

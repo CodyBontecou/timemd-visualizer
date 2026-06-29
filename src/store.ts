@@ -2,21 +2,26 @@ import { App, EventRef, Events, Notice, TFile, TFolder } from 'obsidian';
 import { parseReport, isSupportedPath } from './parsers';
 import {
 	AppRow,
+	AppTransitionRow,
 	CategoryRow,
+	ContextSwitchRow,
 	CursorBin,
+	FocusBlockRow,
 	HeatmapCell,
 	IntensityPoint,
+	MatrixCell,
 	RawKeystroke,
 	RawMouseEvent,
 	Report,
 	ReportSection,
 	Row,
 	SessionRow,
+	TopDomainRow,
 	TrendPoint,
 	TypedKeyRow,
 	TypedWordRow,
 } from './types';
-import { parseDate, stripWikiLinks } from './utils';
+import { parseDate, stripWikiLinks, toFiniteNumber } from './utils';
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB per file
 
@@ -153,6 +158,112 @@ export class DataStore extends Events {
 			}
 		}
 		return [...map.values()];
+	}
+
+	getTopDomains(): TopDomainRow[] {
+		const map = new Map<string, TopDomainRow>();
+		for (const section of this.allSections('top_domains')) {
+			for (const row of section.rows) {
+				const domain = cleanName(row['domain']);
+				if (!domain) continue;
+				const existing = map.get(domain) ?? { domain, visit_count: 0, total_duration_seconds: 0 };
+				existing.visit_count += firstNumber(row, ['visit_count', 'visits', 'count']);
+				existing.total_duration_seconds += firstNumber(row, ['total_duration_seconds', 'duration_seconds', 'total_seconds']);
+				const lastVisit = firstDate(row, ['last_visit_time', 'visit_time', 'timestamp']);
+				if (lastVisit && (!existing.last_visit_time || lastVisit > existing.last_visit_time)) {
+					existing.last_visit_time = lastVisit;
+				}
+				map.set(domain, existing);
+			}
+		}
+		return [...map.values()].sort((a, b) => b.total_duration_seconds - a.total_duration_seconds);
+	}
+
+	getContextSwitches(): ContextSwitchRow[] {
+		const out: ContextSwitchRow[] = [];
+		for (const section of this.allSections('context_switches')) {
+			for (const row of section.rows) {
+				const from = firstString(row, ['from_app_name', 'from_app', 'previous_app_name', 'previous_app']);
+				const to = firstString(row, ['to_app_name', 'to_app', 'next_app_name', 'next_app']);
+				if (!from && !to) continue;
+				out.push({
+					timestamp: firstDate(row, ['timestamp', 'switch_time', 'time']),
+					from_app_name: from,
+					to_app_name: to,
+					switch_count: firstNumber(row, ['switch_count', 'context_switches', 'count'], 1),
+				});
+			}
+		}
+		return out.sort((a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0));
+	}
+
+	getAppTransitions(): AppTransitionRow[] {
+		const map = new Map<string, AppTransitionRow>();
+		for (const section of this.allSections('app_transitions')) {
+			for (const row of section.rows) {
+				const from = firstString(row, ['from_app_name', 'from_app', 'previous_app_name', 'previous_app']);
+				const to = firstString(row, ['to_app_name', 'to_app', 'next_app_name', 'next_app']);
+				if (!from && !to) continue;
+				const key = `${from}\u0000${to}`;
+				const existing = map.get(key) ?? {
+					from_app_name: from,
+					to_app_name: to,
+					transition_count: 0,
+					total_duration_seconds: 0,
+				};
+				existing.transition_count += firstNumber(row, ['transition_count', 'count'], 1);
+				existing.total_duration_seconds += firstNumber(row, ['total_duration_seconds', 'duration_seconds', 'total_seconds']);
+				const avg = optFirstNumber(row, ['average_duration_seconds', 'avg_duration_seconds']);
+				if (avg !== undefined) existing.average_duration_seconds = avg;
+				map.set(key, existing);
+			}
+		}
+		return [...map.values()].sort((a, b) => b.transition_count - a.transition_count);
+	}
+
+	getFocusBlocks(): FocusBlockRow[] {
+		const out: FocusBlockRow[] = [];
+		for (const section of this.allSections('focus_blocks')) {
+			for (const row of section.rows) {
+				const start = firstDate(row, ['start_time', 'started_at', 'timestamp']);
+				if (!start) continue;
+				out.push({
+					start_time: start,
+					end_time: firstDate(row, ['end_time', 'ended_at']),
+					duration_seconds: firstNumber(row, ['duration_seconds', 'total_seconds']),
+					app_name: firstString(row, ['app_name', 'focused_app', 'primary_app']) || undefined,
+					category: firstString(row, ['category']) || undefined,
+					interruptions: optFirstNumber(row, ['interruptions', 'context_switches', 'switch_count']),
+				});
+			}
+		}
+		return out.sort((a, b) => b.start_time.getTime() - a.start_time.getTime());
+	}
+
+	getDailyMatrix(): MatrixCell[] {
+		return this.getMatrix('daily_matrix');
+	}
+
+	getHourlyMatrix(): MatrixCell[] {
+		return this.getMatrix('hourly_matrix');
+	}
+
+	private getMatrix(sectionName: 'daily_matrix' | 'hourly_matrix'): MatrixCell[] {
+		const out: MatrixCell[] = [];
+		for (const section of this.allSections(sectionName)) {
+			for (const row of section.rows) {
+				const hour = firstNumber(row, ['hour']);
+				out.push({
+					date: firstDate(row, ['date', 'day']),
+					weekday: optFirstNumber(row, ['weekday']),
+					hour,
+					app_name: firstString(row, ['app_name', 'app']) || undefined,
+					category: firstString(row, ['category']) || undefined,
+					total_seconds: firstNumber(row, ['total_seconds', 'duration_seconds']),
+				});
+			}
+		}
+		return out;
 	}
 
 	getSessions(): SessionRow[] {
@@ -307,9 +418,22 @@ export class DataStore extends Events {
 	}
 
 	getDateRange(): { start: Date; end: Date } | null {
+		let start: Date | undefined;
+		let end: Date | undefined;
+		for (const report of this.reports) {
+			const metaStart = report.metadata.dateRangeStart;
+			const metaEnd = report.metadata.dateRangeEnd;
+			if (metaStart && (!start || metaStart < start)) start = metaStart;
+			if (metaEnd && (!end || metaEnd > end)) end = metaEnd;
+		}
 		const trend = this.getTrend();
-		if (trend.length === 0) return null;
-		return { start: trend[0]!.date, end: trend[trend.length - 1]!.date };
+		if (trend.length > 0) {
+			const trendStart = trend[0]!.date;
+			const trendEnd = trend[trend.length - 1]!.date;
+			if (!start || trendStart < start) start = trendStart;
+			if (!end || trendEnd > end) end = trendEnd;
+		}
+		return start && end ? { start, end } : null;
 	}
 }
 
@@ -321,12 +445,42 @@ function collectFiles(folder: TFolder, out: TFile[]): void {
 }
 
 function toNumber(v: Row[string] | undefined): number {
-	if (typeof v === 'number') return v;
-	if (typeof v === 'string') {
-		const n = Number(v);
-		return Number.isFinite(n) ? n : 0;
+	return toFiniteNumber(v, 0);
+}
+
+function firstNumber(row: Row, keys: string[], fallback = 0): number {
+	for (const key of keys) {
+		if (row[key] !== undefined) return toFiniteNumber(row[key], fallback);
 	}
-	return 0;
+	return fallback;
+}
+
+function optFirstNumber(row: Row, keys: string[]): number | undefined {
+	for (const key of keys) {
+		const value = row[key];
+		if (value === undefined) continue;
+		if (typeof value === 'string' && value.trim() === '') continue;
+		const n = toFiniteNumber(value, Number.NaN);
+		if (Number.isFinite(n)) return n;
+	}
+	return undefined;
+}
+
+function firstDate(row: Row, keys: string[]): Date | undefined {
+	for (const key of keys) {
+		const value = row[key];
+		const date = parseDate(value);
+		if (date) return date;
+	}
+	return undefined;
+}
+
+function firstString(row: Row, keys: string[]): string {
+	for (const key of keys) {
+		const value = cleanName(row[key]);
+		if (value) return value;
+	}
+	return '';
 }
 
 function cleanName(v: Row[string] | undefined): string {

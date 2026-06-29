@@ -1,0 +1,23 @@
+{
+  "title": "Schema Robustness — 2026-06-29",
+  "destination": "time",
+  "generated_at": "2026-06-29T23:59:00Z",
+  "schema_version": "2.0",
+  "timezone": "America/Los_Angeles",
+  "filters": "date_range=2026-06-29..2026-06-29; granularity=day; app=all",
+  "sections": [
+    {
+      "name": "top_domains",
+      "display_name": "Top Domains",
+      "headers": ["domain", "visit_count", "total_duration_seconds", "last_visit_time"],
+      "data": [
+        {
+          "domain": "example.com",
+          "visit_count": "3",
+          "total_duration_seconds": "",
+          "last_visit_time": "2026-06-29T18:30:00Z"
+        }
+      ]
+    }
+  ]
+}

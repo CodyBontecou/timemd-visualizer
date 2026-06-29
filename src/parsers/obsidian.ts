@@ -1,5 +1,5 @@
 import { Report, ReportMetadata } from '../types';
-import { parseDate } from '../utils';
+import { applyFilterMetadata, parseDate, parseDateRangeText } from '../utils';
 import { parseMarkdownBody } from './markdown';
 
 export function parseObsidian(content: string, path: string): Report {
@@ -86,6 +86,19 @@ function buildMetadataFromFrontmatter(fm: Frontmatter, path: string): ReportMeta
 	if (Array.isArray(fm.top_apps)) meta.topApps = fm.top_apps;
 	if (Array.isArray(fm.tags)) meta.tags = fm.tags;
 	if (typeof fm.filters === 'string') meta.filters = fm.filters;
+	if (typeof fm.date_range === 'string') {
+		const range = parseDateRangeText(fm.date_range);
+		meta.dateRangeStart = range.start;
+		meta.dateRangeEnd = range.end;
+	}
+	if (typeof fm.date_range_start === 'string') meta.dateRangeStart = parseDate(fm.date_range_start) ?? meta.dateRangeStart;
+	if (typeof fm.date_range_end === 'string') meta.dateRangeEnd = parseDate(fm.date_range_end) ?? meta.dateRangeEnd;
+	if (typeof fm.granularity === 'string') meta.granularity = fm.granularity;
+	if (typeof fm.timezone === 'string') meta.timezone = fm.timezone;
+	if (typeof fm.schema_version === 'string' || typeof fm.schema_version === 'number') {
+		meta.schemaVersion = String(fm.schema_version);
+	}
+	applyFilterMetadata(meta);
 	return meta;
 }
 

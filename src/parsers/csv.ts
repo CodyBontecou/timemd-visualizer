@@ -1,12 +1,29 @@
 import { Report, ReportMetadata, ReportSection, Row } from '../types';
-import { canonicalSectionName, coerceNumber, parseDate } from '../utils';
+import { applyFilterMetadata, canonicalSectionName, coerceRowValue, parseDate, parseDateRangeText } from '../utils';
 
-const COMMENT_META: Array<[RegExp, keyof ReportMetadata | '__date']> = [
+type CommentMetaKey =
+	| 'title'
+	| 'destination'
+	| 'generatedAt'
+	| 'filters'
+	| 'granularity'
+	| 'dateRange'
+	| 'dateRangeStart'
+	| 'dateRangeEnd'
+	| 'timezone'
+	| 'schemaVersion';
+
+const COMMENT_META: Array<[RegExp, CommentMetaKey]> = [
 	[/^#\s*Title:\s*(.+)$/i, 'title'],
 	[/^#\s*Destination:\s*(.+)$/i, 'destination'],
 	[/^#\s*Generated At:\s*(.+)$/i, 'generatedAt'],
+	[/^#\s*Date Range:\s*(.+)$/i, 'dateRange'],
+	[/^#\s*Date Range Start:\s*(.+)$/i, 'dateRangeStart'],
+	[/^#\s*Date Range End:\s*(.+)$/i, 'dateRangeEnd'],
 	[/^#\s*Filters:\s*(.+)$/i, 'filters'],
 	[/^#\s*Granularity:\s*(.+)$/i, 'granularity'],
+	[/^#\s*Timezone:\s*(.+)$/i, 'timezone'],
+	[/^#\s*Schema Version:\s*(.+)$/i, 'schemaVersion'],
 ];
 
 export function parseCsv(content: string, path: string): Report {
@@ -37,10 +54,18 @@ export function parseCsv(content: string, path: string): Report {
 				if (m && m[1]) {
 					const value = m[1].trim();
 					if (key === 'generatedAt') metadata.generatedAt = parseDate(value);
+					else if (key === 'dateRange') {
+						const range = parseDateRangeText(value);
+						metadata.dateRangeStart = range.start ?? metadata.dateRangeStart;
+						metadata.dateRangeEnd = range.end ?? metadata.dateRangeEnd;
+					} else if (key === 'dateRangeStart') metadata.dateRangeStart = parseDate(value);
+					else if (key === 'dateRangeEnd') metadata.dateRangeEnd = parseDate(value);
 					else if (key === 'title') metadata.title = value;
 					else if (key === 'destination') metadata.destination = value;
 					else if (key === 'filters') metadata.filters = value;
 					else if (key === 'granularity') metadata.granularity = value;
+					else if (key === 'timezone') metadata.timezone = value;
+					else if (key === 'schemaVersion') metadata.schemaVersion = value;
 					break;
 				}
 			}
@@ -64,12 +89,13 @@ export function parseCsv(content: string, path: string): Report {
 			const row: Row = {};
 			current.headers.forEach((h, i) => {
 				const v = fields[i] ?? '';
-				row[h] = coerceNumber(v);
+				row[h] = coerceRowValue(v, h);
 			});
 			current.rows.push(row);
 		}
 	}
 	flush();
+	applyFilterMetadata(metadata);
 
 	return { sourcePath: path, sourceFormat: 'csv', metadata, sections };
 }

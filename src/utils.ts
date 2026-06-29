@@ -1,4 +1,4 @@
-import { SectionName } from './types';
+import { ReportMetadata, SectionName } from './types';
 
 export function formatDuration(seconds: number): string {
 	if (!Number.isFinite(seconds) || seconds <= 0) return '0m';
@@ -35,12 +35,108 @@ export function formatDateISO(d: Date): string {
 }
 
 export function coerceNumber(value: unknown): number | string {
-	if (typeof value === 'number') return value;
+	return coerceRowValue(value);
+}
+
+export function coerceRowValue(value: unknown, fieldName?: string): number | string {
+	if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+	if (value == null) return isNumericField(fieldName) ? 0 : '';
 	if (typeof value !== 'string') return String(value);
 	const trimmed = value.trim();
-	if (!trimmed) return trimmed;
-	if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
+	if (!trimmed) return isNumericField(fieldName) ? 0 : trimmed;
+	if (isNumericString(trimmed)) return Number(trimmed);
 	return value;
+}
+
+export function toFiniteNumber(value: unknown, fallback = 0): number {
+	if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
+	if (typeof value === 'string') {
+		const trimmed = value.trim();
+		if (!trimmed) return fallback;
+		const n = Number(trimmed);
+		return Number.isFinite(n) ? n : fallback;
+	}
+	return fallback;
+}
+
+export function parseDateRangeText(value: unknown): { start?: Date; end?: Date } {
+	if (value == null) return {};
+	const text = stripWikiLinks(String(value)).trim();
+	if (!text) return {};
+
+	const parts = splitDateRange(text);
+	if (parts.length >= 2) {
+		return {
+			start: parseDate(parts[0]),
+			end: parseDate(parts.slice(1).join(' ').trim()) ?? parseDate(parts[1]),
+		};
+	}
+
+	const single = parseDate(text);
+	return single ? { start: single, end: single } : {};
+}
+
+export function applyFilterMetadata(metadata: ReportMetadata): void {
+	if (!metadata.filters) return;
+	const filters = parseFilterString(metadata.filters);
+	const dateRange = filters.get('date_range') ?? filters.get('daterange') ?? filters.get('date range');
+	if (dateRange) {
+		const parsed = parseDateRangeText(dateRange);
+		metadata.dateRangeStart = metadata.dateRangeStart ?? parsed.start;
+		metadata.dateRangeEnd = metadata.dateRangeEnd ?? parsed.end;
+	}
+	metadata.granularity = metadata.granularity ?? filters.get('granularity');
+	metadata.timezone = metadata.timezone ?? filters.get('timezone') ?? filters.get('time_zone');
+	metadata.schemaVersion = metadata.schemaVersion ?? filters.get('schema_version') ?? filters.get('schema');
+}
+
+function splitDateRange(text: string): string[] {
+	if (text.includes('..')) return text.split(/\.\./).map((s) => s.trim()).filter(Boolean);
+	if (text.includes('→')) return text.split('→').map((s) => s.trim()).filter(Boolean);
+	if (/\s+to\s+/i.test(text)) return text.split(/\s+to\s+/i).map((s) => s.trim()).filter(Boolean);
+	if (/\s+-\s+/.test(text)) return text.split(/\s+-\s+/).map((s) => s.trim()).filter(Boolean);
+	return [text];
+}
+
+function parseFilterString(filters: string): Map<string, string> {
+	const out = new Map<string, string>();
+	for (const part of filters.split(';')) {
+		const trimmed = part.trim();
+		if (!trimmed) continue;
+		const idx = trimmed.indexOf('=');
+		if (idx <= 0) continue;
+		const key = trimmed.slice(0, idx).trim().toLowerCase();
+		const value = trimmed.slice(idx + 1).trim();
+		if (key && value) out.set(key, value);
+	}
+	return out;
+}
+
+function isNumericField(fieldName: string | undefined): boolean {
+	if (!fieldName) return false;
+	const key = fieldName.toLowerCase().trim();
+	return (
+		key === 'hour' ||
+		key === 'weekday' ||
+		key === 'count' ||
+		key.endsWith('_count') ||
+		key.endsWith('_seconds') ||
+		key.endsWith('_minutes') ||
+		key.endsWith('_hours') ||
+		key.endsWith('_id') ||
+		key.endsWith('_x') ||
+		key.endsWith('_y') ||
+		key === 'x' ||
+		key === 'y' ||
+		key === 'pct' ||
+		key === 'percent' ||
+		key === 'samples' ||
+		key === 'modifiers' ||
+		key === 'kind' ||
+		key === 'button' ||
+		key === 'visits' ||
+		key === 'interruptions'
+	);
 }
 
 export function stripWikiLinks(value: string): string {
@@ -83,6 +179,15 @@ const SECTION_ALIASES: Record<string, SectionName> = {
 	'context switches': 'context_switches',
 	app_transitions: 'app_transitions',
 	'app transitions': 'app_transitions',
+	focus_blocks: 'focus_blocks',
+	'focus blocks': 'focus_blocks',
+	'focus block': 'focus_blocks',
+	daily_matrix: 'daily_matrix',
+	'daily matrix': 'daily_matrix',
+	'daily matrices': 'daily_matrix',
+	hourly_matrix: 'hourly_matrix',
+	'hourly matrix': 'hourly_matrix',
+	'hourly matrices': 'hourly_matrix',
 	period_comparison: 'period_comparison',
 	'period comparison': 'period_comparison',
 	'top typed words': 'input_top_words',

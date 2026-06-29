@@ -7,6 +7,8 @@ export interface ReportMetadata {
 	dateRangeStart?: Date;
 	dateRangeEnd?: Date;
 	granularity?: string;
+	timezone?: string;
+	schemaVersion?: string;
 	filters?: string;
 	totalHours?: number;
 	totalMinutes?: number;
@@ -42,6 +44,9 @@ export type SectionName =
 	| 'top_domains'
 	| 'context_switches'
 	| 'app_transitions'
+	| 'focus_blocks'
+	| 'daily_matrix'
+	| 'hourly_matrix'
 	| 'period_comparison'
 	| 'input_top_words'
 	| 'input_top_keys'
@@ -77,6 +82,46 @@ export interface SessionRow {
 export interface HeatmapCell {
 	weekday: number;
 	hour: number;
+	total_seconds: number;
+}
+
+export interface TopDomainRow {
+	domain: string;
+	visit_count: number;
+	total_duration_seconds: number;
+	last_visit_time?: Date;
+}
+
+export interface ContextSwitchRow {
+	timestamp?: Date;
+	from_app_name: string;
+	to_app_name: string;
+	switch_count: number;
+}
+
+export interface AppTransitionRow {
+	from_app_name: string;
+	to_app_name: string;
+	transition_count: number;
+	total_duration_seconds: number;
+	average_duration_seconds?: number;
+}
+
+export interface FocusBlockRow {
+	start_time: Date;
+	end_time?: Date;
+	duration_seconds: number;
+	app_name?: string;
+	category?: string;
+	interruptions?: number;
+}
+
+export interface MatrixCell {
+	date?: Date;
+	weekday?: number;
+	hour: number;
+	app_name?: string;
+	category?: string;
 	total_seconds: number;
 }
 
