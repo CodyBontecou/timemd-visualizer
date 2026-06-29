@@ -2110,3 +2110,106 @@
 	color: var(--text-muted);
 	font-variant-numeric: tabular-nums;
 }
+
+.timemd-trends-wide-card {
+	overflow: hidden;
+}
+
+.timemd-app-rhythm-wrap {
+	max-width: 100%;
+	overflow: auto;
+	padding-bottom: 4px;
+}
+
+.timemd-app-rhythm-cell,
+.timemd-scatter-point {
+	transition: opacity 120ms ease, filter 120ms ease;
+}
+
+.timemd-app-rhythm-cell:hover,
+.timemd-scatter-point:hover {
+	filter: brightness(1.16);
+}
+
+.timemd-app-rhythm-label {
+	font-size: 10px;
+}
+
+.timemd-scatter-chart {
+	max-width: 100%;
+}
+
+.timemd-archetype-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.timemd-archetype-chip,
+.timemd-archetype-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	border-radius: 999px;
+	border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary);
+	color: var(--text-normal);
+}
+
+.timemd-archetype-chip {
+	padding: 5px 9px;
+	font-size: 0.85em;
+}
+
+.timemd-archetype-pill {
+	padding: 3px 8px;
+	font-size: 0.82em;
+	white-space: nowrap;
+}
+
+.timemd-archetype-chip-count {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.timemd-archetype-chip.is-deep-work,
+.timemd-archetype-pill.is-deep-work {
+	border-color: rgba(34, 197, 94, 0.45);
+	background: rgba(34, 197, 94, 0.12);
+}
+
+.timemd-archetype-chip.is-comms-heavy,
+.timemd-archetype-pill.is-comms-heavy {
+	border-color: rgba(59, 130, 246, 0.45);
+	background: rgba(59, 130, 246, 0.12);
+}
+
+.timemd-archetype-chip.is-browsing-heavy,
+.timemd-archetype-pill.is-browsing-heavy {
+	border-color: rgba(245, 158, 11, 0.45);
+	background: rgba(245, 158, 11, 0.12);
+}
+
+.timemd-archetype-chip.is-fragmented,
+.timemd-archetype-pill.is-fragmented {
+	border-color: rgba(239, 68, 68, 0.45);
+	background: rgba(239, 68, 68, 0.12);
+}
+
+.timemd-archetype-chip.is-low-activity,
+.timemd-archetype-pill.is-low-activity {
+	border-color: rgba(100, 116, 139, 0.45);
+	background: rgba(100, 116, 139, 0.12);
+}
+
+.timemd-archetype-table-wrap {
+	max-height: 520px;
+}
+
+.timemd-archetype-table td:nth-child(3),
+.timemd-archetype-table td:nth-child(5),
+.timemd-archetype-table td:nth-child(6),
+.timemd-archetype-table td:nth-child(7) {
+	font-variant-numeric: tabular-nums;
+}
