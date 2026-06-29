@@ -178,7 +178,12 @@ export class DataStore extends Events {
 				map.set(domain, existing);
 			}
 		}
-		return [...map.values()].sort((a, b) => b.total_duration_seconds - a.total_duration_seconds);
+		return [...map.values()].sort(
+			(a, b) =>
+				b.total_duration_seconds - a.total_duration_seconds ||
+				b.visit_count - a.visit_count ||
+				a.domain.localeCompare(b.domain),
+		);
 	}
 
 	getFocusBlocks(): FocusBlockRow[] {

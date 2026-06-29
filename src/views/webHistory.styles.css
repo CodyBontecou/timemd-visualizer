@@ -288,8 +288,158 @@
 	margin-bottom: 8px;
 }
 
+.timemd-history-domain-stats {
+	margin-bottom: 4px;
+}
+
+.timemd-history-domain-section,
+.timemd-history-classification {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.timemd-history-section-heading {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.timemd-history-section-title {
+	font-weight: 700;
+	color: var(--text-normal);
+}
+
+.timemd-history-section-note {
+	color: var(--text-muted);
+	font-size: 0.82em;
+}
+
+.timemd-history-domain-tiles {
+	display: grid;
+	grid-template-columns: repeat(8, minmax(0, 1fr));
+	grid-auto-rows: minmax(96px, auto);
+	gap: 10px;
+}
+
+.timemd-history-domain-tile {
+	min-width: 0;
+	padding: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 10px;
+	background: linear-gradient(135deg, var(--background-secondary), var(--background-primary-alt));
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 10px;
+	overflow: hidden;
+}
+
+.timemd-history-domain-tile-1 {
+	min-height: 96px;
+}
+
+.timemd-history-domain-tile-2 {
+	min-height: 112px;
+}
+
+.timemd-history-domain-tile-3,
+.timemd-history-domain-tile-4 {
+	min-height: 132px;
+}
+
+.timemd-history-domain-tile-top {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.timemd-history-domain-tile-domain {
+	font-weight: 700;
+	color: var(--text-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.timemd-history-domain-tile-class {
+	flex: 0 0 auto;
+	max-width: 45%;
+	padding: 2px 6px;
+	border-radius: 999px;
+	background: var(--background-primary);
+	color: var(--text-muted);
+	font-size: 0.72em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.timemd-history-domain-tile-value {
+	font-size: 1.35em;
+	font-weight: 750;
+	color: var(--timemd-accent, var(--interactive-accent));
+	font-variant-numeric: tabular-nums;
+}
+
+.timemd-history-domain-tile-meta {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	color: var(--text-muted);
+	font-size: 0.78em;
+	white-space: nowrap;
+}
+
+.timemd-history-classification .timemd-bars {
+	margin-top: 2px;
+}
+
+.timemd-history-classification-chips {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 8px;
+}
+
+.timemd-history-classification-chip {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 8px 10px;
+	background: var(--background-primary-alt);
+}
+
+.timemd-history-classification-chip-label {
+	font-weight: 650;
+	color: var(--text-normal);
+}
+
+.timemd-history-classification-chip-value {
+	margin-top: 2px;
+	color: var(--text-muted);
+	font-size: 0.82em;
+}
+
 .timemd-history-domain-table {
 	margin-top: 8px;
+}
+
+@media (max-width: 720px) {
+	.timemd-history-domain-tiles {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 480px) {
+	.timemd-history-domain-tiles {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.timemd-history-domain-tile {
+		grid-column: span 2 !important;
+	}
 }
 
 .timemd-history-activity {

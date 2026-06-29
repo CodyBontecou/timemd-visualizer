@@ -1,7 +1,7 @@
 import { WorkspaceLeaf } from 'obsidian';
 import { renderBarList } from '../charts';
 import { DataStore } from '../store';
-import { Row } from '../types';
+import { Row, TopDomainRow } from '../types';
 import { formatDateISO, formatDuration, parseDate } from '../utils';
 import { TimeMdBaseView, TimeMdHost } from './base';
 
@@ -17,11 +17,15 @@ interface VisitRow {
 	browser: string;
 }
 
-interface DomainRow {
-	domain: string;
-	visit_count: number;
-	total_duration_seconds: number;
-	last_visit_time: Date | undefined;
+type DomainRow = TopDomainRow;
+
+type DomainClass = 'Work / learning' | 'Consumption' | 'Social' | 'Commerce' | 'Unknown';
+
+interface DomainClassSummary {
+	label: DomainClass;
+	domains: number;
+	visits: number;
+	knownDurationSeconds: number;
 }
 
 const TIMELINE_LIMIT = 500;
@@ -51,13 +55,14 @@ export class WebHistoryView extends TimeMdBaseView {
 		const visits = collectVisits(this.host.store);
 		const domains = collectDomains(this.host.store);
 
-		if (visits.length === 0) {
+		if (visits.length === 0 && domains.length === 0) {
 			body.createDiv({
 				cls: 'timemd-empty-inline',
 				text: 'No web history data in the loaded exports. Re-export with the Web History section enabled.',
 			});
 			return;
 		}
+		if (visits.length === 0 && this.tab !== 'domains') this.tab = 'domains';
 
 		const container = body.createDiv({ cls: 'timemd-history' });
 
@@ -66,7 +71,7 @@ export class WebHistoryView extends TimeMdBaseView {
 		headerLeft.createDiv({ cls: 'timemd-history-title', text: 'Web History' });
 		headerLeft.createDiv({
 			cls: 'timemd-history-subtitle',
-			text: formatRangeSubtitle(visits),
+			text: formatHistoryRangeSubtitle(visits, domains),
 		});
 
 		const browsers = uniqueBrowsers(visits);
@@ -129,7 +134,7 @@ export class WebHistoryView extends TimeMdBaseView {
 				},
 			});
 		} else if (this.tab === 'domains') {
-			renderDomains(tabBody, filtered, domains);
+			renderDomains(tabBody, filtered, this.browser === 'All' ? domains : []);
 		} else {
 			renderActivity(tabBody, filtered);
 		}
@@ -148,7 +153,8 @@ export function renderWebHistoryEmbed(
 	opts: WebHistoryEmbedOptions = {},
 ): void {
 	const visits = collectVisits(store);
-	if (visits.length === 0) {
+	const domains = collectDomains(store);
+	if (visits.length === 0 && domains.length === 0) {
 		el.createDiv({
 			cls: 'timemd-embed-empty',
 			text: 'No web history data in the loaded exports. Re-export with the Web History section enabled.',
@@ -171,7 +177,7 @@ export function renderWebHistoryEmbed(
 	addStatCard(statsRow, 'Daily avg', String(stats.dailyAvg), 'chart');
 	addStatCard(statsRow, 'Peak hour', stats.peakHour, 'clock');
 
-	const tab: SubTab = opts.tab ?? 'timeline';
+	const tab: SubTab = opts.tab ?? (visits.length === 0 ? 'domains' : 'timeline');
 	const tabBody = container.createDiv({ cls: 'timemd-history-tab-body' });
 
 	if (tab === 'timeline') {
@@ -183,7 +189,7 @@ export function renderWebHistoryEmbed(
 			limit: opts.limit ?? TIMELINE_LIMIT,
 		});
 	} else if (tab === 'domains') {
-		renderDomains(tabBody, filtered, collectDomains(store), opts.limit);
+		renderDomains(tabBody, filtered, browser === 'All' ? domains : [], opts.limit);
 	} else {
 		renderActivity(tabBody, filtered);
 	}
@@ -209,46 +215,13 @@ function collectVisits(store: DataStore): VisitRow[] {
 }
 
 function collectDomains(store: DataStore): DomainRow[] {
-	const map = new Map<string, DomainRow>();
-	for (const section of store.allSections('top_domains')) {
-		for (const row of section.rows) {
-			const domain = rowString(row, 'domain');
-			if (!domain) continue;
-			const existing =
-				map.get(domain) ?? {
-					domain,
-					visit_count: 0,
-					total_duration_seconds: 0,
-					last_visit_time: undefined as Date | undefined,
-				};
-			existing.visit_count += rowNumber(row, 'visit_count');
-			existing.total_duration_seconds += rowNumber(row, 'total_duration_seconds');
-			const last = parseDate(row['last_visit_time']);
-			if (last && (!existing.last_visit_time || last > existing.last_visit_time)) {
-				existing.last_visit_time = last;
-			}
-			map.set(domain, existing);
-		}
-	}
-	return [...map.values()].sort(
-		(a, b) => b.total_duration_seconds - a.total_duration_seconds,
-	);
+	return store.getTopDomains();
 }
 
 function rowString(row: Row, key: string): string {
 	const v = row[key];
 	if (v == null) return '';
 	return String(v).trim();
-}
-
-function rowNumber(row: Row, key: string): number {
-	const v = row[key];
-	if (typeof v === 'number') return v;
-	if (typeof v === 'string') {
-		const n = Number(v);
-		return Number.isFinite(n) ? n : 0;
-	}
-	return 0;
 }
 
 function uniqueBrowsers(visits: VisitRow[]): string[] {
@@ -259,22 +232,34 @@ function uniqueBrowsers(visits: VisitRow[]): string[] {
 	return [...set].sort((a, b) => a.localeCompare(b));
 }
 
+function formatHistoryRangeSubtitle(visits: VisitRow[], domains: DomainRow[]): string {
+	if (visits.length > 0) return formatRangeSubtitle(visits);
+	const latest = domains
+		.map((d) => d.last_visit_time)
+		.filter((d): d is Date => d instanceof Date)
+		.sort((a, b) => b.getTime() - a.getTime())[0];
+	return latest ? `LATEST DOMAIN VISIT ${formatDateLabel(latest)}` : 'TOP DOMAINS';
+}
+
 function formatRangeSubtitle(visits: VisitRow[]): string {
-	if (visits.length === 0) return '';
 	let min = visits[0]!.visit_time;
 	let max = visits[0]!.visit_time;
 	for (const v of visits) {
 		if (v.visit_time < min) min = v.visit_time;
 		if (v.visit_time > max) max = v.visit_time;
 	}
+	const a = formatDateLabel(min);
+	const b = formatDateLabel(max);
+	return a === b ? `${a} - ${b}` : `${a} - ${b}`;
+}
+
+function formatDateLabel(date: Date): string {
 	const fmt = new Intl.DateTimeFormat(undefined, {
 		month: 'short',
 		day: 'numeric',
 		year: 'numeric',
 	});
-	const a = fmt.format(min).toUpperCase();
-	const b = fmt.format(max).toUpperCase();
-	return a === b ? `${a} - ${b}` : `${a} - ${b}`;
+	return fmt.format(date).toUpperCase();
 }
 
 interface VisitStats {
@@ -496,29 +481,113 @@ function renderDomains(
 		parent.createDiv({ cls: 'timemd-empty-inline', text: 'No domain data.' });
 		return;
 	}
-	const cap = limit && limit > 0 ? limit : 15;
+	const cap = limit && limit > 0 ? limit : 24;
 	const top = merged.slice(0, cap);
 
-	const barsWrap = parent.createDiv({ cls: 'timemd-history-bars' });
+	renderDomainStats(parent, merged, visits);
+	renderDomainTiles(parent, top);
+	renderDomainClassSummary(parent, merged);
+	renderDomainTable(parent, top);
+}
+
+function renderDomainStats(parent: HTMLElement, domains: DomainRow[], visits: VisitRow[]): void {
+	const totalVisits = domains.reduce((sum, d) => sum + d.visit_count, 0) || visits.length;
+	const knownDuration = domains.reduce(
+		(sum, d) => sum + (d.total_duration_seconds > 0 ? d.total_duration_seconds : 0),
+		0,
+	);
+	let latest: Date | undefined;
+	for (const d of domains) {
+		if (d.last_visit_time && (!latest || d.last_visit_time > latest)) latest = d.last_visit_time;
+	}
+	for (const v of visits) {
+		if (!latest || v.visit_time > latest) latest = v.visit_time;
+	}
+
+	const statsRow = parent.createDiv({ cls: 'timemd-stats-row timemd-history-domain-stats' });
+	addStatCard(statsRow, 'Domains', String(domains.length), 'link');
+	addStatCard(statsRow, 'Visits', String(totalVisits), 'circle');
+	addStatCard(statsRow, 'Known duration', knownDuration > 0 ? formatDuration(knownDuration) : '—', 'clock');
+	addStatCard(statsRow, 'Top domain', domains[0]?.domain ?? '—', 'chart');
+	addStatCard(statsRow, 'Latest visit', latest ? latest.toLocaleString() : '—', 'clock');
+}
+
+function renderDomainTiles(parent: HTMLElement, domains: DomainRow[]): void {
+	const section = parent.createDiv({ cls: 'timemd-history-domain-section' });
+	const heading = section.createDiv({ cls: 'timemd-history-section-heading' });
+	heading.createDiv({ cls: 'timemd-history-section-title', text: 'Top domains' });
+	heading.createDiv({
+		cls: 'timemd-history-section-note',
+		text: 'Tiles are sized by known duration when present, with visits as fallback.',
+	});
+
+	const maxWeight = Math.max(1, ...domains.map(domainWeight));
+	const tiles = section.createDiv({ cls: 'timemd-history-domain-tiles' });
+	for (const domain of domains) {
+		const weight = domainWeight(domain);
+		const span = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(weight / maxWeight) * 4)));
+		const tile = tiles.createDiv({ cls: `timemd-history-domain-tile timemd-history-domain-tile-${span}` });
+		tile.style.gridColumn = `span ${span}`;
+		tile.setAttr(
+			'title',
+			`${domain.domain} · ${domain.visit_count} visit${domain.visit_count === 1 ? '' : 's'} · ${formatKnownDuration(domain.total_duration_seconds)}`,
+		);
+		const top = tile.createDiv({ cls: 'timemd-history-domain-tile-top' });
+		top.createDiv({ cls: 'timemd-history-domain-tile-domain', text: domain.domain });
+		top.createSpan({
+			cls: 'timemd-history-domain-tile-class',
+			text: classifyDomain(domain.domain),
+		});
+		tile.createDiv({ cls: 'timemd-history-domain-tile-value', text: domainMetricLabel(domain) });
+		const meta = tile.createDiv({ cls: 'timemd-history-domain-tile-meta' });
+		meta.createSpan({ text: `${domain.visit_count} visit${domain.visit_count === 1 ? '' : 's'}` });
+		meta.createSpan({ text: domain.last_visit_time ? `Last ${domain.last_visit_time.toLocaleDateString()}` : 'Last visit unknown' });
+	}
+}
+
+function renderDomainClassSummary(parent: HTMLElement, domains: DomainRow[]): void {
+	const summaries = summarizeDomainClasses(domains);
+	const wrap = parent.createDiv({ cls: 'timemd-history-classification timemd-card' });
+	const heading = wrap.createDiv({ cls: 'timemd-history-section-heading' });
+	heading.createDiv({ cls: 'timemd-history-section-title', text: 'Estimated domain classification' });
+	heading.createDiv({
+		cls: 'timemd-history-section-note',
+		text: 'Local keyword/domain heuristics only. No network requests are made; unknown means no rule matched.',
+	});
+
 	renderBarList(
-		barsWrap,
-		top.map((d) => ({ label: d.domain, value: d.total_duration_seconds })),
-		{ formatValue: formatDuration },
+		wrap,
+		summaries.map((s) => ({ label: s.label, value: s.visits })),
+		{ formatValue: (v) => `${v} visit${v === 1 ? '' : 's'}`, showPercent: true },
 	);
 
+	const chips = wrap.createDiv({ cls: 'timemd-history-classification-chips' });
+	for (const summary of summaries) {
+		const chip = chips.createDiv({ cls: `timemd-history-classification-chip timemd-history-classification-${slug(summary.label)}` });
+		chip.createDiv({ cls: 'timemd-history-classification-chip-label', text: summary.label });
+		chip.createDiv({
+			cls: 'timemd-history-classification-chip-value',
+			text: `${summary.domains} domain${summary.domains === 1 ? '' : 's'} · ${formatKnownDuration(summary.knownDurationSeconds)}`,
+		});
+	}
+}
+
+function renderDomainTable(parent: HTMLElement, domains: DomainRow[]): void {
 	const tableWrap = parent.createDiv({ cls: 'timemd-table-wrap timemd-history-domain-table' });
 	const table = tableWrap.createEl('table', { cls: 'timemd-table' });
 	const head = table.createEl('thead').createEl('tr');
 	head.createEl('th', { text: 'Domain' });
+	head.createEl('th', { text: 'Estimated class' });
 	head.createEl('th', { text: 'Visits' });
-	head.createEl('th', { text: 'Duration' });
+	head.createEl('th', { text: 'Known duration' });
 	head.createEl('th', { text: 'Last visit' });
 	const tbody = table.createEl('tbody');
-	for (const d of top) {
+	for (const d of domains) {
 		const tr = tbody.createEl('tr');
 		tr.createEl('td', { text: d.domain });
+		tr.createEl('td', { text: classifyDomain(d.domain) });
 		tr.createEl('td', { text: String(d.visit_count) });
-		tr.createEl('td', { text: formatDuration(d.total_duration_seconds) });
+		tr.createEl('td', { text: formatKnownDuration(d.total_duration_seconds) });
 		tr.createEl('td', {
 			text: d.last_visit_time ? d.last_visit_time.toLocaleString() : '—',
 		});
@@ -527,7 +596,9 @@ function renderDomains(
 
 function mergeDomains(visits: VisitRow[], exported: DomainRow[]): DomainRow[] {
 	const map = new Map<string, DomainRow>();
+	const exportedDomainNames = new Set<string>();
 	for (const e of exported) {
+		exportedDomainNames.add(e.domain);
 		map.set(e.domain, {
 			domain: e.domain,
 			visit_count: e.visit_count,
@@ -535,28 +606,97 @@ function mergeDomains(visits: VisitRow[], exported: DomainRow[]): DomainRow[] {
 			last_visit_time: e.last_visit_time,
 		});
 	}
+
+	const visitCounts = new Map<string, number>();
+	const latestVisits = new Map<string, Date>();
 	for (const v of visits) {
 		if (!v.domain) continue;
-		const existing =
-			map.get(v.domain) ?? {
-				domain: v.domain,
-				visit_count: 0,
-				total_duration_seconds: 0,
-				last_visit_time: undefined as Date | undefined,
-			};
-		if (!exported.some((e) => e.domain === v.domain)) {
-			existing.visit_count += 1;
-		}
-		if (!existing.last_visit_time || v.visit_time > existing.last_visit_time) {
-			existing.last_visit_time = v.visit_time;
-		}
-		map.set(v.domain, existing);
+		visitCounts.set(v.domain, (visitCounts.get(v.domain) ?? 0) + 1);
+		const latest = latestVisits.get(v.domain);
+		if (!latest || v.visit_time > latest) latestVisits.set(v.domain, v.visit_time);
 	}
+
+	for (const [domain, count] of visitCounts) {
+		const existing = map.get(domain) ?? {
+			domain,
+			visit_count: 0,
+			total_duration_seconds: 0,
+		};
+		if (!exportedDomainNames.has(domain) || existing.visit_count <= 0) {
+			existing.visit_count = count;
+		}
+		const latest = latestVisits.get(domain);
+		if (latest && (!existing.last_visit_time || latest > existing.last_visit_time)) {
+			existing.last_visit_time = latest;
+		}
+		map.set(domain, existing);
+	}
+
 	return [...map.values()].sort(
-		(a, b) =>
-			b.total_duration_seconds - a.total_duration_seconds ||
-			b.visit_count - a.visit_count,
+		(a, b) => domainWeight(b) - domainWeight(a) || b.visit_count - a.visit_count || a.domain.localeCompare(b.domain),
 	);
+}
+
+function domainWeight(domain: DomainRow): number {
+	return domain.total_duration_seconds > 0 ? domain.total_duration_seconds : Math.max(0, domain.visit_count);
+}
+
+function domainMetricLabel(domain: DomainRow): string {
+	if (domain.total_duration_seconds > 0) return formatDuration(domain.total_duration_seconds);
+	return `${domain.visit_count} visit${domain.visit_count === 1 ? '' : 's'}`;
+}
+
+function formatKnownDuration(seconds: number): string {
+	return seconds > 0 ? formatDuration(seconds) : '—';
+}
+
+const DOMAIN_CLASS_ORDER: DomainClass[] = [
+	'Work / learning',
+	'Consumption',
+	'Social',
+	'Commerce',
+	'Unknown',
+];
+
+function summarizeDomainClasses(domains: DomainRow[]): DomainClassSummary[] {
+	const summaries = new Map<DomainClass, DomainClassSummary>();
+	for (const label of DOMAIN_CLASS_ORDER) {
+		summaries.set(label, { label, domains: 0, visits: 0, knownDurationSeconds: 0 });
+	}
+	for (const domain of domains) {
+		const label = classifyDomain(domain.domain);
+		const summary = summaries.get(label);
+		if (!summary) continue;
+		summary.domains += 1;
+		summary.visits += domain.visit_count;
+		if (domain.total_duration_seconds > 0) {
+			summary.knownDurationSeconds += domain.total_duration_seconds;
+		}
+	}
+	return DOMAIN_CLASS_ORDER.map((label) => summaries.get(label)!).filter(
+		(summary) => summary.domains > 0 || summary.label === 'Unknown',
+	);
+}
+
+function classifyDomain(domain: string): DomainClass {
+	const d = domain.toLowerCase();
+	if (matchesAny(d, ['github', 'gitlab', 'stackoverflow', 'stackexchange', 'developer', 'docs.', 'jira', 'linear', 'notion', 'confluence', 'atlassian', 'figma', 'localhost', '127.0.0.1', 'vercel', 'npmjs', 'obsidian', 'calendar.google', 'drive.google', 'mail.google'])) {
+		return 'Work / learning';
+	}
+	if (matchesAny(d, ['youtube', 'netflix', 'hulu', 'twitch', 'spotify', 'podcasts', 'primevideo', 'disneyplus', 'max.com', 'news', 'medium', 'substack'])) {
+		return 'Consumption';
+	}
+	if (matchesAny(d, ['twitter', 'x.com', 'facebook', 'instagram', 'tiktok', 'reddit', 'linkedin', 'bsky', 'threads', 'mastodon', 'discord'])) {
+		return 'Social';
+	}
+	if (matchesAny(d, ['amazon', 'ebay', 'etsy', 'shop', 'store', 'checkout', 'stripe', 'paypal', 'doordash', 'ubereats'])) {
+		return 'Commerce';
+	}
+	return 'Unknown';
+}
+
+function matchesAny(value: string, needles: string[]): boolean {
+	return needles.some((needle) => value.includes(needle));
 }
 
 function renderActivity(parent: HTMLElement, visits: VisitRow[]): void {
