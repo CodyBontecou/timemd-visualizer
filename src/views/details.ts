@@ -7,6 +7,11 @@ import { TimeMdBaseView, TimeMdHost } from './base';
 export const VIEW_TYPE_DETAILS = 'timemd-details';
 
 const MAX_TIMELINE_DAYS = 14;
+const MAX_LANE_DAYS = 3;
+const MAX_LANE_TOP_APPS = 9;
+const MAX_LANE_SEGMENTS_PER_DAY = 800;
+const MAX_WATERFALL_DAYS = 3;
+const MAX_WATERFALL_SESSIONS = 500;
 const SECONDS_PER_DAY = 24 * 3600;
 
 interface TimelineSegment {
@@ -23,6 +28,20 @@ interface TimelineDay {
 	segments: TimelineSegment[];
 	sessionCount: number;
 	visibleSeconds: number;
+}
+
+interface TimelineLane {
+	appName: string;
+	segments: TimelineSegment[];
+	totalSeconds: number;
+	sessionCount: number;
+	isOther: boolean;
+}
+
+interface WaterfallGroup {
+	date: Date;
+	sessions: SessionRow[];
+	omittedSessions: number;
 }
 
 export class DetailsView extends TimeMdBaseView {
@@ -69,6 +88,14 @@ export class DetailsView extends TimeMdBaseView {
 		const timelineCard = body.createDiv({ cls: 'timemd-card timemd-details-wide-card' });
 		timelineCard.createEl('h3', { text: '24-hour session timeline' });
 		renderDailyTimeline(timelineCard, sessions);
+
+		const laneTimelineCard = body.createDiv({ cls: 'timemd-card timemd-details-wide-card' });
+		laneTimelineCard.createEl('h3', { text: 'Timeline with lanes' });
+		renderTimelineWithLanes(laneTimelineCard, sessions);
+
+		const waterfallCard = body.createDiv({ cls: 'timemd-card timemd-details-wide-card' });
+		waterfallCard.createEl('h3', { text: 'Session waterfall' });
+		renderSessionWaterfall(waterfallCard, sessions);
 
 		const vizGrid = body.createDiv({ cls: 'timemd-details-viz-grid' });
 		const distCard = vizGrid.createDiv({ cls: 'timemd-card' });
@@ -185,10 +212,7 @@ function renderDailyTimeline(parent: HTMLElement, sessions: SessionRow[]): void 
 			seg.style.left = `${(start / SECONDS_PER_DAY) * 100}%`;
 			seg.style.width = `${Math.max(0.25, width)}%`;
 			seg.style.background = colorForLabel(s.app_name);
-			seg.setAttr(
-				'title',
-				`${s.app_name} · ${s.start_time.toLocaleTimeString()}–${s.end_time.toLocaleTimeString()} · ${formatDuration(s.duration_seconds)}`,
-			);
+			seg.setAttr('title', formatSessionTitle(s));
 		}
 		row.createDiv({
 			cls: 'timemd-session-timeline-summary',
@@ -203,6 +227,190 @@ function renderTimelineAxis(parent: HTMLElement, cls: string): void {
 	for (const label of ['12a', '3a', '6a', '9a', '12p', '3p', '6p', '9p', '12a']) {
 		axis.createSpan({ text: label });
 	}
+}
+
+function renderTimelineWithLanes(parent: HTMLElement, sessions: SessionRow[]): void {
+	const dayMap = buildTimelineDays(sessions);
+	const allDays = [...dayMap.keys()].sort();
+	const days = allDays.slice(-MAX_LANE_DAYS).reverse();
+	if (days.length === 0) {
+		parent.createDiv({ cls: 'timemd-empty-inline', text: 'No sessions.' });
+		return;
+	}
+	if (allDays.length > days.length) {
+		parent.createDiv({
+			cls: 'timemd-card-note',
+			text: `Showing the latest ${days.length} of ${allDays.length} days.`,
+		});
+	}
+	const wrap = parent.createDiv({ cls: 'timemd-lane-timeline' });
+	for (const day of days) {
+		const entry = dayMap.get(day);
+		if (!entry) continue;
+		const sortedSegments = [...entry.segments].sort((a, b) => a.start - b.start);
+		const renderedSegments = sortedSegments.slice(0, MAX_LANE_SEGMENTS_PER_DAY);
+		const lanes = buildTimelineLanes(sortedSegments, renderedSegments);
+
+		const section = wrap.createDiv({ cls: 'timemd-lane-day' });
+		const head = section.createDiv({ cls: 'timemd-lane-day-head' });
+		head.createDiv({ cls: 'timemd-lane-day-title', text: `${formatTimelineDate(entry.date)} · ${entry.date.toLocaleDateString(undefined, { weekday: 'short' })}` });
+		head.createDiv({ cls: 'timemd-lane-day-meta', text: `${entry.sessionCount} sessions · ${formatDuration(entry.visibleSeconds)}` });
+		renderTimelineAxis(section, 'timemd-lane-axis');
+
+		for (const lane of lanes) {
+			const row = section.createDiv({ cls: `timemd-lane-row${lane.isOther ? ' is-other' : ''}` });
+			const label = row.createDiv({ cls: 'timemd-lane-label' });
+			label.createDiv({ cls: 'timemd-lane-app', text: lane.isOther ? 'Other' : displayAppName(lane.appName) });
+			label.createDiv({ cls: 'timemd-lane-meta', text: `${formatDuration(lane.totalSeconds)} · ${lane.sessionCount.toLocaleString()} segs` });
+			const track = row.createDiv({ cls: 'timemd-lane-track' });
+			for (const s of lane.segments) {
+				const start = Math.max(0, Math.min(SECONDS_PER_DAY, s.start));
+				const rawEnd = Math.max(start, Math.min(SECONDS_PER_DAY, s.end));
+				const end = Math.min(SECONDS_PER_DAY, Math.max(start + 60, rawEnd));
+				const width = ((end - start) / SECONDS_PER_DAY) * 100;
+				const seg = track.createDiv({
+					cls: `timemd-lane-segment${s.duration_seconds < 60 ? ' is-short' : ''}`,
+				});
+				seg.style.left = `${(start / SECONDS_PER_DAY) * 100}%`;
+				seg.style.width = `${Math.max(0.22, width)}%`;
+				seg.style.background = colorForLabel(s.app_name);
+				seg.setAttr('title', formatSessionTitle(s));
+			}
+		}
+		if (sortedSegments.length > renderedSegments.length) {
+			section.createDiv({
+				cls: 'timemd-card-note',
+				text: `Rendered ${renderedSegments.length.toLocaleString()} of ${sortedSegments.length.toLocaleString()} timeline segments for performance.`,
+			});
+		}
+	}
+}
+
+function buildTimelineLanes(allSegments: TimelineSegment[], renderedSegments: TimelineSegment[]): TimelineLane[] {
+	const totals = new Map<string, { totalSeconds: number; sessionCount: number }>();
+	for (const segment of allSegments) {
+		const appName = normalizeAppName(segment.app_name);
+		const current = totals.get(appName) ?? { totalSeconds: 0, sessionCount: 0 };
+		current.totalSeconds += Math.max(1, segment.end - segment.start);
+		current.sessionCount += 1;
+		totals.set(appName, current);
+	}
+	const topAppNames = [...totals.entries()]
+		.sort((a, b) => b[1].totalSeconds - a[1].totalSeconds)
+		.slice(0, MAX_LANE_TOP_APPS)
+		.map(([appName]) => appName);
+	const topSet = new Set(topAppNames);
+	const hiddenAppCount = Math.max(0, totals.size - topAppNames.length);
+	const lanes = new Map<string, TimelineLane>();
+	for (const appName of topAppNames) {
+		const total = totals.get(appName) ?? { totalSeconds: 0, sessionCount: 0 };
+		lanes.set(appName, {
+			appName,
+			segments: [],
+			totalSeconds: total.totalSeconds,
+			sessionCount: total.sessionCount,
+			isOther: false,
+		});
+	}
+	if (hiddenAppCount > 0) {
+		let otherSeconds = 0;
+		let otherSessions = 0;
+		for (const [appName, total] of totals.entries()) {
+			if (topSet.has(appName)) continue;
+			otherSeconds += total.totalSeconds;
+			otherSessions += total.sessionCount;
+		}
+		lanes.set('Other', {
+			appName: 'Other',
+			segments: [],
+			totalSeconds: otherSeconds,
+			sessionCount: otherSessions,
+			isOther: true,
+		});
+	}
+	for (const segment of renderedSegments) {
+		const appName = normalizeAppName(segment.app_name);
+		const laneKey = topSet.has(appName) ? appName : 'Other';
+		lanes.get(laneKey)?.segments.push(segment);
+	}
+	return [...lanes.values()].filter((lane) => lane.totalSeconds > 0);
+}
+
+function renderSessionWaterfall(parent: HTMLElement, sessions: SessionRow[]): void {
+	const dayCount = new Set(sessions.map((session) => formatDateISO(session.start_time))).size;
+	if (dayCount > MAX_WATERFALL_DAYS) {
+		parent.createDiv({
+			cls: 'timemd-card-note',
+			text: `Showing sessions from the latest ${MAX_WATERFALL_DAYS} of ${dayCount} days.`,
+		});
+	}
+	const groups = buildWaterfallGroups(sessions);
+	if (groups.length === 0) {
+		parent.createDiv({ cls: 'timemd-empty-inline', text: 'No sessions.' });
+		return;
+	}
+	const shownSessions = groups.flatMap((group) => group.sessions);
+	const omitted = groups.reduce((sum, group) => sum + group.omittedSessions, 0);
+	const maxDuration = Math.max(1, ...shownSessions.map((session) => session.duration_seconds));
+	const wrap = parent.createDiv({ cls: 'timemd-session-waterfall' });
+	for (const group of groups) {
+		const section = wrap.createDiv({ cls: 'timemd-waterfall-day' });
+		const head = section.createDiv({ cls: 'timemd-waterfall-day-head' });
+		head.createDiv({ cls: 'timemd-waterfall-day-title', text: `${formatTimelineDate(group.date)} · ${group.date.toLocaleDateString(undefined, { weekday: 'short' })}` });
+		head.createDiv({ cls: 'timemd-waterfall-day-meta', text: `${group.sessions.length.toLocaleString()} shown${group.omittedSessions > 0 ? ` · ${group.omittedSessions.toLocaleString()} omitted` : ''}` });
+		for (const session of group.sessions) {
+			const row = section.createDiv({ cls: 'timemd-waterfall-row' });
+			row.setAttr('title', formatSessionTitle(session));
+			row.createDiv({ cls: 'timemd-waterfall-time', text: `${formatClock(session.start_time)}–${formatClock(session.end_time)}` });
+			row.createDiv({ cls: 'timemd-waterfall-app', text: displayAppName(session.app_name) });
+			row.createDiv({ cls: 'timemd-waterfall-duration', text: formatDuration(session.duration_seconds) });
+			const track = row.createDiv({ cls: 'timemd-waterfall-track' });
+			const fill = track.createDiv({ cls: 'timemd-waterfall-fill' });
+			fill.style.width = `${Math.max(2, (session.duration_seconds / maxDuration) * 100)}%`;
+			fill.style.background = colorForLabel(session.app_name);
+		}
+	}
+	if (omitted > 0) {
+		parent.createDiv({
+			cls: 'timemd-card-note',
+			text: `Showing ${shownSessions.length.toLocaleString()} sessions; ${omitted.toLocaleString()} more from these days were hidden for performance.`,
+		});
+	}
+}
+
+function buildWaterfallGroups(sessions: SessionRow[]): WaterfallGroup[] {
+	const byDay = new Map<string, { date: Date; sessions: SessionRow[] }>();
+	for (const session of sessions) {
+		const key = formatDateISO(session.start_time);
+		let group = byDay.get(key);
+		if (!group) {
+			group = { date: startOfDay(session.start_time), sessions: [] };
+			byDay.set(key, group);
+		}
+		group.sessions.push(session);
+	}
+	const days = [...byDay.keys()].sort().slice(-MAX_WATERFALL_DAYS);
+	const daySessions = days
+		.map((day) => {
+			const group = byDay.get(day);
+			return group
+				? { date: group.date, sessions: [...group.sessions].sort((a, b) => a.start_time.getTime() - b.start_time.getTime()) }
+				: undefined;
+		})
+		.filter((group): group is { date: Date; sessions: SessionRow[] } => group !== undefined);
+	let sessionsToSkip = Math.max(0, daySessions.reduce((sum, group) => sum + group.sessions.length, 0) - MAX_WATERFALL_SESSIONS);
+	const groups: WaterfallGroup[] = [];
+	for (const group of daySessions) {
+		const omittedFromDay = Math.min(sessionsToSkip, group.sessions.length);
+		const shown = group.sessions.slice(omittedFromDay);
+		sessionsToSkip -= omittedFromDay;
+		groups.push({
+			date: group.date,
+			sessions: shown,
+			omittedSessions: omittedFromDay,
+		});
+	}
+	return groups;
 }
 
 function renderContextSwitchChart(parent: HTMLElement, rows: ContextSwitchRow[]): void {
@@ -326,6 +534,19 @@ function startOfDay(d: Date): Date {
 
 function formatTimelineDate(d: Date): string {
 	return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function formatClock(d: Date): string {
+	return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatSessionTitle(session: SessionRow | TimelineSegment): string {
+	return `${displayAppName(session.app_name)} · ${session.start_time.toLocaleString()}–${session.end_time.toLocaleString()} · ${formatDuration(session.duration_seconds)}`;
+}
+
+function normalizeAppName(appName: string): string {
+	const trimmed = appName.trim();
+	return trimmed.length > 0 ? trimmed : 'Unknown';
 }
 
 function median(values: number[]): number {
