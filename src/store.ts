@@ -21,7 +21,7 @@ import {
 	TypedKeyRow,
 	TypedWordRow,
 } from './types';
-import { parseDate, stripWikiLinks, toFiniteNumber } from './utils';
+import { formatDateISO, parseDate, stripWikiLinks, toFiniteNumber } from './utils';
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB per file
 
@@ -179,48 +179,6 @@ export class DataStore extends Events {
 		return [...map.values()].sort((a, b) => b.total_duration_seconds - a.total_duration_seconds);
 	}
 
-	getContextSwitches(): ContextSwitchRow[] {
-		const out: ContextSwitchRow[] = [];
-		for (const section of this.allSections('context_switches')) {
-			for (const row of section.rows) {
-				const from = firstString(row, ['from_app_name', 'from_app', 'previous_app_name', 'previous_app']);
-				const to = firstString(row, ['to_app_name', 'to_app', 'next_app_name', 'next_app']);
-				if (!from && !to) continue;
-				out.push({
-					timestamp: firstDate(row, ['timestamp', 'switch_time', 'time']),
-					from_app_name: from,
-					to_app_name: to,
-					switch_count: firstNumber(row, ['switch_count', 'context_switches', 'count'], 1),
-				});
-			}
-		}
-		return out.sort((a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0));
-	}
-
-	getAppTransitions(): AppTransitionRow[] {
-		const map = new Map<string, AppTransitionRow>();
-		for (const section of this.allSections('app_transitions')) {
-			for (const row of section.rows) {
-				const from = firstString(row, ['from_app_name', 'from_app', 'previous_app_name', 'previous_app']);
-				const to = firstString(row, ['to_app_name', 'to_app', 'next_app_name', 'next_app']);
-				if (!from && !to) continue;
-				const key = `${from}\u0000${to}`;
-				const existing = map.get(key) ?? {
-					from_app_name: from,
-					to_app_name: to,
-					transition_count: 0,
-					total_duration_seconds: 0,
-				};
-				existing.transition_count += firstNumber(row, ['transition_count', 'count'], 1);
-				existing.total_duration_seconds += firstNumber(row, ['total_duration_seconds', 'duration_seconds', 'total_seconds']);
-				const avg = optFirstNumber(row, ['average_duration_seconds', 'avg_duration_seconds']);
-				if (avg !== undefined) existing.average_duration_seconds = avg;
-				map.set(key, existing);
-			}
-		}
-		return [...map.values()].sort((a, b) => b.transition_count - a.transition_count);
-	}
-
 	getFocusBlocks(): FocusBlockRow[] {
 		const out: FocusBlockRow[] = [];
 		for (const section of this.allSections('focus_blocks')) {
@@ -282,6 +240,63 @@ export class DataStore extends Events {
 			}
 		}
 		return out.sort((a, b) => b.start_time.getTime() - a.start_time.getTime());
+	}
+
+	getContextSwitches(): ContextSwitchRow[] {
+		const map = new Map<string, ContextSwitchRow>();
+		for (const section of this.allSections('context_switches')) {
+			for (const row of section.rows) {
+				const date = rowDateKey(row['date']);
+				if (!date) continue;
+				const hour = Math.max(0, Math.min(23, Math.trunc(toNumber(row['hour']))));
+				const key = `${date}-${hour}`;
+				const existing = map.get(key) ?? { date, hour, switch_count: 0 };
+				existing.switch_count += toNumber(row['switch_count']);
+				map.set(key, existing);
+			}
+		}
+		return [...map.values()].sort((a, b) => a.date.localeCompare(b.date) || a.hour - b.hour);
+	}
+
+	getAppTransitions(): AppTransitionRow[] {
+		const map = new Map<string, AppTransitionRow>();
+		for (const section of this.allSections('app_transitions')) {
+			for (const row of section.rows) {
+				const from = cleanName(row['from_app']) || cleanName(row['from']) || cleanName(row['source_app']);
+				const to = cleanName(row['to_app']) || cleanName(row['to']) || cleanName(row['target_app']);
+				if (!from || !to) continue;
+				const key = `${from}\u0000${to}`;
+				const existing = map.get(key) ?? { from_app: from, to_app: to, count: 0, percentage: 0 };
+				existing.count += toNumber(row['count']);
+				map.set(key, existing);
+			}
+		}
+		const rows = [...map.values()].sort((a, b) => b.count - a.count);
+		const total = rows.reduce((sum, row) => sum + row.count, 0);
+		for (const row of rows) row.percentage = total > 0 ? (row.count / total) * 100 : 0;
+		return rows;
+	}
+
+	getSummaryMetric(name: string): number | string | undefined {
+		const target = normalizeMetricName(name);
+		let numericTotal = 0;
+		let sawNumeric = false;
+		let fallback: string | undefined;
+		for (const section of this.allSections('summary')) {
+			for (const row of section.rows) {
+				const metric = normalizeMetricName(String(row['metric'] ?? ''));
+				if (metric !== target) continue;
+				const rawValue = row['value'];
+				const numeric = numericValue(rawValue);
+				if (numeric !== undefined) {
+					numericTotal += numeric;
+					sawNumeric = true;
+				} else if (rawValue != null) {
+					fallback = String(rawValue).trim();
+				}
+			}
+		}
+		return sawNumeric ? numericTotal : fallback;
 	}
 
 	getTotalSeconds(): number {
@@ -486,6 +501,26 @@ function firstString(row: Row, keys: string[]): string {
 function cleanName(v: Row[string] | undefined): string {
 	if (v == null) return '';
 	return stripWikiLinks(String(v)).trim();
+}
+
+function rowDateKey(v: Row[string] | undefined): string | undefined {
+	if (v == null) return undefined;
+	const raw = String(v).trim();
+	const iso = /^\d{4}-\d{2}-\d{2}/.exec(raw);
+	if (iso) return iso[0];
+	const date = parseDate(v);
+	return date ? formatDateISO(date) : undefined;
+}
+
+function normalizeMetricName(value: string): string {
+	return value.trim().toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+function numericValue(v: Row[string] | undefined): number | undefined {
+	if (typeof v === 'number') return Number.isFinite(v) ? v : undefined;
+	if (typeof v !== 'string') return undefined;
+	const n = Number(v.trim());
+	return Number.isFinite(n) ? n : undefined;
 }
 
 function optString(v: Row[string] | undefined): string | undefined {

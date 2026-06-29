@@ -93,18 +93,16 @@ export interface TopDomainRow {
 }
 
 export interface ContextSwitchRow {
-	timestamp?: Date;
-	from_app_name: string;
-	to_app_name: string;
+	date: string;
+	hour: number;
 	switch_count: number;
 }
 
 export interface AppTransitionRow {
-	from_app_name: string;
-	to_app_name: string;
-	transition_count: number;
-	total_duration_seconds: number;
-	average_duration_seconds?: number;
+	from_app: string;
+	to_app: string;
+	count: number;
+	percentage: number;
 }
 
 export interface FocusBlockRow {
