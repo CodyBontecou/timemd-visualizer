@@ -1753,17 +1753,22 @@
 }
 
 .timemd-sankey-link {
-	stroke-opacity: 0.34;
+	stroke-opacity: var(--timemd-sankey-link-opacity, 0.34);
 	transition: stroke-opacity 120ms ease;
-	mix-blend-mode: multiply;
+	mix-blend-mode: var(--timemd-sankey-link-blend-mode, multiply);
 }
 
 .theme-dark .timemd-sankey-link {
-	mix-blend-mode: screen;
+	stroke-opacity: var(--timemd-sankey-link-opacity, 0.56);
+	mix-blend-mode: var(--timemd-sankey-link-blend-mode, normal);
 }
 
 .timemd-sankey-link:hover {
-	stroke-opacity: 0.64;
+	stroke-opacity: var(--timemd-sankey-link-hover-opacity, 0.64);
+}
+
+.theme-dark .timemd-sankey-link:hover {
+	stroke-opacity: var(--timemd-sankey-link-hover-opacity, 0.78);
 }
 
 .timemd-sankey-node {

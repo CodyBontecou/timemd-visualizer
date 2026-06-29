@@ -271,6 +271,11 @@ export function applyColorSchemeVars(target: HTMLElement, id: TimeMdColorScheme)
 	style.setProperty('--timemd-positive', tokens.positive);
 	style.setProperty('--timemd-app-palette', tokens.appColors.join(','));
 	style.setProperty('--timemd-heatmap-rgb', hexToRgbString(tokens.heatmapGradient[Math.max(0, tokens.heatmapGradient.length - 2)] ?? tokens.accent));
+
+	const sankeyOnDarkSurface = isDarkHexColor(tokens.background) || isDarkHexColor(tokens.surface);
+	style.setProperty('--timemd-sankey-link-blend-mode', sankeyOnDarkSurface ? 'normal' : 'multiply');
+	style.setProperty('--timemd-sankey-link-opacity', sankeyOnDarkSurface ? '0.56' : '0.34');
+	style.setProperty('--timemd-sankey-link-hover-opacity', sankeyOnDarkSurface ? '0.78' : '0.64');
 }
 
 export function clearColorSchemeVars(target: HTMLElement): void {
@@ -279,13 +284,28 @@ export function clearColorSchemeVars(target: HTMLElement): void {
 		'--background-modifier-hover', '--text-normal', '--text-muted', '--text-faint', '--interactive-accent',
 		'--color-accent', '--text-accent', '--timemd-accent', '--timemd-accent-hover', '--timemd-accent-muted',
 		'--timemd-danger', '--timemd-warning', '--timemd-positive', '--timemd-app-palette', '--timemd-heatmap-rgb',
+		'--timemd-sankey-link-blend-mode', '--timemd-sankey-link-opacity', '--timemd-sankey-link-hover-opacity',
 	].forEach((name) => target.style.removeProperty(name));
 }
 
 function hexToRgbString(hex: string): string {
-	const clean = hex.replace('#', '').slice(0, 6);
+	const rgb = parseHexRgb(hex);
+	if (!rgb) return '88, 101, 242';
+	return `${rgb.r}, ${rgb.g}, ${rgb.b}`;
+}
+
+function isDarkHexColor(hex: string): boolean {
+	const rgb = parseHexRgb(hex);
+	if (!rgb) return false;
+	const perceivedBrightness = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
+	return perceivedBrightness < 0.45;
+}
+
+function parseHexRgb(hex: string): { r: number; g: number; b: number } | null {
+	const clean = hex.trim().replace('#', '').slice(0, 6);
 	const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
+	if (!/^[0-9a-f]{6}$/i.test(full)) return null;
 	const n = Number.parseInt(full, 16);
-	if (!Number.isFinite(n)) return '88, 101, 242';
-	return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+	if (!Number.isFinite(n)) return null;
+	return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }

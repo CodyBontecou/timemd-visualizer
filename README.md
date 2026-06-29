@@ -18,16 +18,67 @@ timemd-visualizor auto-detects and parses every format time.md can export:
 | View | What it shows |
 |------|---------------|
 | Overview | Total, daily average, peak hour, longest session, trend, distribution donut, top apps, heatmap, and web-history overview |
-| Trends | Range-aware daily/hourly defaults, stacked by-app chart (with Raw Sessions), hourly usage chart, top apps by day, and daily breakdown |
+| Trends | Range-aware daily/hourly defaults, stacked by-app chart (with Raw Sessions), hourly usage chart, app rhythm, focus-vs-fragmentation scatter, category balance, day archetypes, top apps by day, and daily breakdown |
 | Calendar | Stats strip, GitHub-style daily contribution heatmap, 7×24 usage heatmap, date × hour heatmap (with Raw Sessions), intensity legend, and month grid |
-| Details | Session stats, duration distribution, daily timeline, and filterable raw-session table |
+| Details | Session stats, duration distribution, daily timeline, app lanes, session waterfall, context-switch intensity, attention-flow Sankey, and filterable raw-session table |
 | Apps & Categories | Aggregated apps and categories with percentages |
 | Projects | Category groups with donut distribution chart and stats |
 | Web History | Browser history timeline, top domains, hourly activity |
-| Reports | Daily / weekday breakdowns with CSV / JSON / Markdown export |
+| Reports | Daily / weekday breakdowns, period comparison, distribution charts, and CSV / JSON / Markdown export |
 | Input Tracking | Cursor heatmap, typing intensity, top words / keys, per-app clicks (opt-in in time.md) |
 
 Open any view from the command palette (`timemd-visualizor: Open Overview`, etc.) or the ribbon icon.
+
+## Visualization gallery
+
+The screenshots below are rendered from the plugin's live embed renderer against representative sample data. Every `view:` value can be used in a `timemd` code block.
+
+### Core screen-time visualizations
+
+| Visualization | Embed view | What it shows | Screenshot |
+|---|---|---|---|
+| Overview dashboard | `overview` | Stats, trend, weekly heatmap, and top apps in one dashboard. | <img src="docs/assets/visualizations/overview.png" width="420" alt="Overview dashboard visualization screenshot"> |
+| Stat card | `stat` | One focused metric such as total time, top app, app count, days, or peak day. | <img src="docs/assets/visualizations/stat.png" width="300" alt="Stat card visualization screenshot"> |
+| Trend chart | `trend-chart` / `trends` | Daily active time line chart. | <img src="docs/assets/visualizations/trend-chart.png" width="360" alt="Trend chart visualization screenshot"> |
+| Weekly heatmap | `heatmap` / `calendar` | Weekday × hour activity intensity. | <img src="docs/assets/visualizations/heatmap.png" width="420" alt="Weekly heatmap visualization screenshot"> |
+| Top apps | `top-apps` / `apps` | Ranked app totals with proportional bars. | <img src="docs/assets/visualizations/top-apps.png" width="360" alt="Top apps visualization screenshot"> |
+| Categories | `categories` | Category totals and share of tracked time. | <img src="docs/assets/visualizations/categories.png" width="360" alt="Categories visualization screenshot"> |
+| Recent sessions | `details` | Latest raw sessions with app, timestamp, and duration. | <img src="docs/assets/visualizations/details.png" width="420" alt="Recent sessions visualization screenshot"> |
+
+### Attention, rhythm, and session analysis
+
+| Visualization | Embed view | What it shows | Screenshot |
+|---|---|---|---|
+| Attention flow | `transition-sankey` | Sankey diagram showing where focus moves between apps. | <img src="docs/assets/visualizations/transition-sankey.png" width="420" alt="Attention flow Sankey visualization screenshot"> |
+| App lanes | `app-lanes` | Per-app timeline lanes for the latest day. | <img src="docs/assets/visualizations/app-lanes.png" width="420" alt="App lanes visualization screenshot"> |
+| Session waterfall | `session-waterfall` | Chronological sessions with duration bars. | <img src="docs/assets/visualizations/session-waterfall.png" width="420" alt="Session waterfall visualization screenshot"> |
+| App rhythm | `app-rhythm` | App × hour heatmap for daily usage rhythms. | <img src="docs/assets/visualizations/app-rhythm.png" width="420" alt="App rhythm visualization screenshot"> |
+| Focus vs fragmentation | `fragmentation-scatter` | Daily active time versus switches per hour; bubble size is session count. | <img src="docs/assets/visualizations/fragmentation-scatter.png" width="420" alt="Focus vs fragmentation scatter visualization screenshot"> |
+| Category balance | `category-balance` | Category mix from daily and hourly matrices. | <img src="docs/assets/visualizations/category-balance.png" width="360" alt="Category balance visualization screenshot"> |
+| Day archetypes | `day-archetypes` | Day classifications such as deep work, fragmented, or browsing-heavy. | <img src="docs/assets/visualizations/day-archetypes.png" width="420" alt="Day archetypes visualization screenshot"> |
+| Contribution heatmap | `contribution-heatmap` | Calendar-style daily activity heatmap. | <img src="docs/assets/visualizations/contribution-heatmap.png" width="420" alt="Contribution heatmap visualization screenshot"> |
+| Date × hour heatmap | `date-hour-heatmap` | Raw-session-derived grid by date and hour. | <img src="docs/assets/visualizations/date-hour-heatmap.png" width="420" alt="Date hour heatmap visualization screenshot"> |
+
+### Projects, reports, and browsing
+
+| Visualization | Embed view | What it shows | Screenshot |
+|---|---|---|---|
+| Projects | `projects` | Category/project list paired with distribution stats. | <img src="docs/assets/visualizations/projects.png" width="420" alt="Projects visualization screenshot"> |
+| Distribution donut | `distribution` | Category share as a donut with legend and stats. | <img src="docs/assets/visualizations/distribution.png" width="420" alt="Distribution donut visualization screenshot"> |
+| Web history | `web-history` | Browser history stats, timeline, domains, or hourly activity. | <img src="docs/assets/visualizations/web-history.png" width="420" alt="Web history visualization screenshot"> |
+| Reports | `reports` | Summary stats, period comparison, distributions, weekday averages, and export table. | <img src="docs/assets/visualizations/reports.png" width="420" alt="Reports visualization screenshot"> |
+
+### Input tracking visualizations
+
+| Visualization | Embed view | What it shows | Screenshot |
+|---|---|---|---|
+| Input stats | `input-stats` | Keystrokes, peak typing minute, cursor samples, clicks, and observed apps. | <img src="docs/assets/visualizations/input-stats.png" width="360" alt="Input stats visualization screenshot"> |
+| Cursor heatmap | `cursor-heatmap` | Absolute screen-coordinate cursor heatmap with click overlay. | <img src="docs/assets/visualizations/cursor-heatmap.png" width="420" alt="Cursor heatmap visualization screenshot"> |
+| Typing intensity | `typing-intensity` | Hourly keystroke line chart. | <img src="docs/assets/visualizations/typing-intensity.png" width="360" alt="Typing intensity visualization screenshot"> |
+| Top typed keys | `top-keys` | Most-pressed keys. | <img src="docs/assets/visualizations/top-keys.png" width="360" alt="Top typed keys visualization screenshot"> |
+| Top typed words | `top-words` | Most-typed words with default redaction controls. | <img src="docs/assets/visualizations/top-words.png" width="360" alt="Top typed words visualization screenshot"> |
+| Input activity | `input-activity` | Per-app click counts from raw mouse events. | <img src="docs/assets/visualizations/input-activity.png" width="360" alt="Input activity visualization screenshot"> |
+
 
 ## Input Tracking
 
@@ -123,13 +174,22 @@ view: overview
 
 | `view` | Renders |
 |--------|---------|
-| `overview` | Stats strip, trend sparkline, top apps (default) |
+| `overview` | Stats strip, trend sparkline, weekly heatmap, and top apps (default) |
 | `stat` | One big number — configure with `metric:` |
 | `trends`, `trend-chart` | Daily line chart |
 | `calendar`, `heatmap` | 7×24 weekly heatmap |
 | `apps`, `top-apps` | App bar list |
 | `categories` | Category bar list |
 | `details` | Recent sessions list |
+| `transition-sankey` | Attention-flow Sankey between source and destination apps |
+| `app-lanes` | Per-app session lanes for the latest day |
+| `session-waterfall` | Chronological session list with duration bars |
+| `app-rhythm` | App × hour heatmap |
+| `fragmentation-scatter` | Daily active time vs. switches per hour scatter plot |
+| `category-balance` | Category mix from daily / hourly matrix exports |
+| `day-archetypes` | Table of daily classifications such as Deep work or Fragmented |
+| `contribution-heatmap` | Calendar-style daily contribution heatmap |
+| `date-hour-heatmap` | Date × hour heatmap derived from Raw Sessions |
 | `projects` | Categories list + distribution donut + stats |
 | `distribution` | Donut chart + category legend + stats card (no list) |
 | `web-history` | Browser history (timeline / domains / activity tab) |
@@ -146,7 +206,7 @@ view: overview
 | key | applies to | default | description |
 |-----|------------|---------|-------------|
 | `view` | all | `overview` | widget type (see table above) |
-| `limit` | `overview`, `top-apps`, `categories`, `details`, `top-keys`, `top-words` | varies | number of items shown |
+| `limit` | `overview`, `top-apps`, `categories`, `details`, `transition-sankey`, `app-lanes`, `session-waterfall`, `app-rhythm`, `category-balance`, `day-archetypes`, `projects`, `web-history`, `top-keys`, `top-words` | varies | number of items shown |
 | `days` | `overview`, `trend-chart` | all | restrict to last N days of trend data |
 | `height` | `cursor-heatmap`, `typing-intensity` | view default | SVG canvas height in pixels |
 | `metric` | `stat` | `total_time` | `total_time`, `top_app`, `apps_count`, `days`, `peak_day` |
