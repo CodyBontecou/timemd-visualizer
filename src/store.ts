@@ -12,6 +12,7 @@ import {
 	ReportSection,
 	Row,
 	SessionRow,
+	TopDomainRow,
 	TrendPoint,
 	TypedKeyRow,
 	TypedWordRow,
@@ -171,6 +172,34 @@ export class DataStore extends Events {
 			}
 		}
 		return out.sort((a, b) => b.start_time.getTime() - a.start_time.getTime());
+	}
+
+	getTopDomains(): TopDomainRow[] {
+		const map = new Map<string, TopDomainRow>();
+		for (const section of this.allSections('top_domains')) {
+			for (const row of section.rows) {
+				const domain = String(row['domain'] ?? '').trim();
+				if (!domain) continue;
+				const existing = map.get(domain) ?? {
+					domain,
+					visit_count: 0,
+					total_duration_seconds: 0,
+				};
+				existing.visit_count += toNumber(row['visit_count']);
+				existing.total_duration_seconds += toNumber(row['total_duration_seconds']);
+				const last = parseDate(row['last_visit_time']);
+				if (last && (!existing.last_visit_time || last > existing.last_visit_time)) {
+					existing.last_visit_time = last;
+				}
+				map.set(domain, existing);
+			}
+		}
+		return [...map.values()].sort(
+			(a, b) =>
+				b.total_duration_seconds - a.total_duration_seconds ||
+				b.visit_count - a.visit_count ||
+				a.domain.localeCompare(b.domain),
+		);
 	}
 
 	getTotalSeconds(): number {

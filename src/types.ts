@@ -80,6 +80,13 @@ export interface HeatmapCell {
 	total_seconds: number;
 }
 
+export interface TopDomainRow {
+	domain: string;
+	visit_count: number;
+	total_duration_seconds: number;
+	last_visit_time?: Date;
+}
+
 export interface TypedWordRow {
 	word: string;
 	count: number;
