@@ -105,6 +105,18 @@ export interface AppTransitionRow {
 	percentage: number;
 }
 
+export interface PeriodComparisonAppDelta {
+	app_name: string;
+	delta_seconds: number;
+}
+
+export interface PeriodComparisonMetrics {
+	current_total_seconds?: number;
+	previous_total_seconds?: number;
+	percent_change?: number;
+	app_deltas: PeriodComparisonAppDelta[];
+}
+
 export interface FocusBlockRow {
 	start_time: Date;
 	end_time?: Date;

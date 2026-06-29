@@ -358,10 +358,32 @@ export interface ContributionDay {
 	value: number;
 }
 
+export interface DayAnnotation {
+	highContextSwitches?: number;
+	focusBlocks?: number;
+}
+
+function annotationText(annotation: DayAnnotation | undefined): string[] {
+	if (!annotation) return [];
+	const lines: string[] = [];
+	if (annotation.highContextSwitches !== undefined) {
+		lines.push(`High context switching: ${annotation.highContextSwitches.toLocaleString()} switches`);
+	}
+	if (annotation.focusBlocks !== undefined) {
+		lines.push(`${annotation.focusBlocks.toLocaleString()} focus block${annotation.focusBlocks === 1 ? '' : 's'}`);
+	}
+	return lines;
+}
+
 export function renderContributionHeatmap(
 	parent: HTMLElement,
 	days: ContributionDay[],
-	opts: { formatValue?: (v: number) => string } = {},
+	opts: {
+		formatValue?: (v: number) => string;
+		dayAnnotations?: Map<string, DayAnnotation>;
+		selectedDate?: string | null;
+		onDayClick?: (date: Date) => void;
+	} = {},
 ): void {
 	const fmt = opts.formatValue ?? ((v: number) => String(v));
 	const wrap = parent.createDiv({ cls: 'timemd-contribution-wrap' });
@@ -428,26 +450,59 @@ export function renderContributionHeatmap(
 			root.appendChild(month);
 			lastMonth = date.getMonth();
 		}
+		const x = pad.l + week * (cell + gap);
+		const y = pad.t + dow * (cell + gap);
+		const annotation = opts.dayAnnotations?.get(key);
+		const annotationClasses = [
+			annotation?.highContextSwitches !== undefined ? 'has-high-context' : '',
+			annotation?.focusBlocks !== undefined ? 'has-focus-block' : '',
+			opts.selectedDate === key ? 'is-selected' : '',
+		].filter(Boolean).join(' ');
 		const rect = svg('rect', {
-			x: pad.l + week * (cell + gap),
-			y: pad.t + dow * (cell + gap),
+			x,
+			y,
 			width: cell,
 			height: cell,
 			rx: 2,
-			class: inRange ? 'timemd-contribution-cell' : 'timemd-contribution-cell is-outside-range',
+			class: `${inRange ? 'timemd-contribution-cell' : 'timemd-contribution-cell is-outside-range'}${annotationClasses ? ` ${annotationClasses}` : ''}`,
 		});
 		rect.setAttribute('fill', inRange ? `rgba(${rgb}, ${0.08 + intensity * 0.92})` : 'transparent');
+		if (opts.onDayClick && inRange) {
+			rect.addEventListener('click', () => opts.onDayClick?.(date));
+			rect.setAttribute('tabindex', '0');
+			rect.setAttribute('role', 'button');
+		}
 		const title = svg('title');
-		title.textContent = `${key} — ${fmt(value)}`;
+		const lines = [`${key} — ${fmt(value)}`, ...annotationText(annotation)];
+		title.textContent = lines.join('\n');
 		rect.appendChild(title);
 		root.appendChild(rect);
+		if (annotation?.highContextSwitches !== undefined || opts.selectedDate === key) {
+			const ring = svg('rect', {
+				x: x + 0.75,
+				y: y + 0.75,
+				width: Math.max(0, cell - 1.5),
+				height: Math.max(0, cell - 1.5),
+				rx: 2.5,
+				class: `timemd-day-marker-ring${opts.selectedDate === key ? ' is-selected' : ''}`,
+			});
+			root.appendChild(ring);
+		}
+		if (annotation?.focusBlocks !== undefined) {
+			root.appendChild(svg('circle', {
+				cx: x + cell - 3,
+				cy: y + cell - 3,
+				r: 2,
+				class: 'timemd-day-marker-dot',
+			}));
+		}
 	}
 }
 
 export function renderDateHourHeatmap(
 	parent: HTMLElement,
 	cells: DateHourCell[],
-	opts: { formatValue?: (v: number) => string; start?: Date; end?: Date } = {},
+	opts: { formatValue?: (v: number) => string; start?: Date; end?: Date; dayAnnotations?: Map<string, DayAnnotation> } = {},
 ): void {
 	const fmt = opts.formatValue ?? ((v: number) => String(v));
 	const wrap = parent.createDiv({ cls: 'timemd-date-hour-wrap' });
@@ -510,6 +565,11 @@ export function renderDateHourHeatmap(
 			label.textContent = rowCount > 120 ? dateText.slice(5) : dateText;
 			root.appendChild(label);
 		}
+		const annotation = opts.dayAnnotations?.get(dateText);
+		const annotationClasses = [
+			annotation?.highContextSwitches !== undefined ? 'has-high-context' : '',
+			annotation?.focusBlocks !== undefined ? 'has-focus-block' : '',
+		].filter(Boolean).join(' ');
 		for (let h = 0; h < 24; h++) {
 			const value = byKey.get(`${dateText}-${h}`) ?? 0;
 			const rect = svg('rect', {
@@ -518,11 +578,12 @@ export function renderDateHourHeatmap(
 				width: cellW,
 				height: cellH,
 				rx: 2,
-				class: 'timemd-date-hour-cell',
+				class: `timemd-date-hour-cell${annotationClasses ? ` ${annotationClasses}` : ''}`,
 			});
 			rect.setAttribute('fill', `rgba(${rgb}, ${0.06 + (value / max) * 0.94})`);
 			const title = svg('title');
-			title.textContent = `${dateText} ${h}:00 — ${fmt(value)}`;
+			const lines = [`${dateText} ${h}:00 — ${fmt(value)}`, ...annotationText(annotation)];
+			title.textContent = lines.join('\n');
 			rect.appendChild(title);
 			root.appendChild(rect);
 		}

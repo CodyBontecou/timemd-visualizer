@@ -1,6 +1,6 @@
 import { Notice, WorkspaceLeaf } from 'obsidian';
 import { DataStore } from '../store';
-import { AppRow, CategoryRow, TrendPoint } from '../types';
+import { AppRow, CategoryRow, PeriodComparisonMetrics, TrendPoint } from '../types';
 import { formatDateISO, formatDuration } from '../utils';
 import { TimeMdBaseView, TimeMdHost } from './base';
 
@@ -118,6 +118,7 @@ function renderReportsContent(root: HTMLElement, store: DataStore, opts: RenderO
 
 	// Stats cards
 	renderStats(wrap, store, apps, categories);
+	renderPeriodComparison(wrap, store.getPeriodComparison());
 
 	// Time distribution
 	if (trend.length > 0) {
@@ -268,6 +269,107 @@ function addStatCard(row: HTMLElement, label: string, value: string, sub: string
 	if (sub) {
 		stat.createDiv({ cls: 'timemd-reports-stat-sub', text: sub });
 	}
+}
+
+function renderPeriodComparison(wrap: HTMLElement, comparison: PeriodComparisonMetrics): void {
+	const hasTotals = comparison.current_total_seconds !== undefined || comparison.previous_total_seconds !== undefined;
+	if (!hasTotals && comparison.percent_change === undefined && comparison.app_deltas.length === 0) return;
+
+	const section = wrap.createDiv({ cls: 'timemd-reports-section timemd-period-comparison-section' });
+	section.createEl('div', { cls: 'timemd-reports-section-title', text: 'Period comparison' });
+	const card = section.createDiv({ cls: 'timemd-card timemd-period-card' });
+
+	const stats = card.createDiv({ cls: 'timemd-stats-row timemd-period-stats' });
+	addStatCard(
+		stats,
+		'CURRENT PERIOD',
+		comparison.current_total_seconds === undefined ? '—' : formatDuration(comparison.current_total_seconds),
+		'',
+	);
+	addStatCard(
+		stats,
+		'PREVIOUS PERIOD',
+		comparison.previous_total_seconds === undefined ? '—' : formatDuration(comparison.previous_total_seconds),
+		'',
+	);
+	addStatCard(stats, 'CHANGE', formatSignedPercent(comparison.percent_change), changeSubtitle(comparison));
+	addStatCard(
+		stats,
+		'APP DELTAS',
+		comparison.app_deltas.length.toLocaleString(),
+		formatNetDelta(comparison.app_deltas.reduce((sum, row) => sum + row.delta_seconds, 0)),
+	);
+
+	if (hasTotals) {
+		const bars = card.createDiv({ cls: 'timemd-period-before-after' });
+		renderPeriodBar(bars, 'Current', comparison.current_total_seconds ?? 0, comparison);
+		renderPeriodBar(bars, 'Previous', comparison.previous_total_seconds ?? 0, comparison);
+	}
+
+	const increases = comparison.app_deltas
+		.filter((row) => row.delta_seconds > 0)
+		.sort((a, b) => b.delta_seconds - a.delta_seconds)
+		.slice(0, 5);
+	const decreases = comparison.app_deltas
+		.filter((row) => row.delta_seconds < 0)
+		.sort((a, b) => a.delta_seconds - b.delta_seconds)
+		.slice(0, 5);
+	if (increases.length > 0 || decreases.length > 0) {
+		const cols = card.createDiv({ cls: 'timemd-period-delta-grid' });
+		renderDeltaColumn(cols, 'Biggest increases', increases, 'positive');
+		renderDeltaColumn(cols, 'Biggest decreases', decreases, 'negative');
+	}
+}
+
+function renderPeriodBar(parent: HTMLElement, label: string, seconds: number, comparison: PeriodComparisonMetrics): void {
+	const max = Math.max(1, comparison.current_total_seconds ?? 0, comparison.previous_total_seconds ?? 0);
+	const row = parent.createDiv({ cls: 'timemd-period-bar-row' });
+	row.createDiv({ cls: 'timemd-period-bar-label', text: label });
+	const track = row.createDiv({ cls: 'timemd-period-bar-track' });
+	const fill = track.createDiv({ cls: 'timemd-period-bar-fill' });
+	fill.style.width = `${Math.round((seconds / max) * 100)}%`;
+	row.createDiv({ cls: 'timemd-period-bar-value', text: formatDuration(seconds) });
+}
+
+function renderDeltaColumn(parent: HTMLElement, title: string, rows: PeriodComparisonMetrics['app_deltas'], tone: 'positive' | 'negative'): void {
+	const col = parent.createDiv({ cls: 'timemd-period-delta-col' });
+	col.createDiv({ cls: 'timemd-period-delta-title', text: title });
+	if (rows.length === 0) {
+		col.createDiv({ cls: 'timemd-empty-inline', text: 'No app deltas.' });
+		return;
+	}
+	const max = Math.max(1, ...rows.map((row) => Math.abs(row.delta_seconds)));
+	for (const row of rows) {
+		const item = col.createDiv({ cls: `timemd-period-delta-row timemd-period-delta-${tone}` });
+		item.createDiv({ cls: 'timemd-period-delta-app', text: row.app_name });
+		const track = item.createDiv({ cls: 'timemd-period-delta-track' });
+		const fill = track.createDiv({ cls: 'timemd-period-delta-fill' });
+		fill.style.width = `${Math.round((Math.abs(row.delta_seconds) / max) * 100)}%`;
+		item.createDiv({ cls: 'timemd-period-delta-value', text: formatSignedDuration(row.delta_seconds) });
+	}
+}
+
+function formatSignedPercent(value: number | undefined): string {
+	if (value === undefined || !Number.isFinite(value)) return '—';
+	const sign = value > 0 ? '+' : '';
+	return `${sign}${value.toFixed(1)}%`;
+}
+
+function changeSubtitle(comparison: PeriodComparisonMetrics): string {
+	const current = comparison.current_total_seconds;
+	const previous = comparison.previous_total_seconds;
+	if (current === undefined || previous === undefined) return '';
+	return formatSignedDuration(current - previous);
+}
+
+function formatNetDelta(seconds: number): string {
+	if (seconds === 0) return 'net 0m';
+	return `net ${formatSignedDuration(seconds)}`;
+}
+
+function formatSignedDuration(seconds: number): string {
+	const sign = seconds > 0 ? '+' : seconds < 0 ? '-' : '';
+	return `${sign}${formatDuration(Math.abs(seconds))}`;
 }
 
 function renderTable(parent: HTMLElement, groupBy: ReportsGroupBy, rows: ReportRow[]): void {
