@@ -63,7 +63,7 @@ export class TimeMdSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Theme preset')
-			.setDesc('Render plugin views with the same color themes available in the time.md macOS app. Individual timemd code blocks can override this with colorScheme or palette.')
+			.setDesc('Render plugin views with the same color themes available in time.md. Code blocks can override this with a color scheme or palette.')
 			.addDropdown((dropdown) => {
 				for (const scheme of TIME_MD_COLOR_SCHEMES) {
 					dropdown.addOption(scheme.id, scheme.label);
