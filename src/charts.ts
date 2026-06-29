@@ -1,3 +1,5 @@
+import { DateHourCell } from './types';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function svg(tag: string, attrs: Record<string, string | number> = {}): SVGElement {
@@ -62,7 +64,7 @@ export interface LineChartPoint {
 export function renderLineChart(
 	parent: HTMLElement,
 	data: LineChartPoint[],
-	opts: { width?: number; height?: number; showArea?: boolean; color?: string } = {},
+	opts: { width?: number; height?: number; showArea?: boolean; color?: string; maxLabels?: number } = {},
 ): void {
 	const width = opts.width ?? 640;
 	const height = opts.height ?? 220;
@@ -115,7 +117,7 @@ export function renderLineChart(
 		root.appendChild(c);
 	}
 
-	const labelEvery = Math.max(1, Math.ceil(data.length / 8));
+	const labelEvery = Math.max(1, Math.ceil(data.length / (opts.maxLabels ?? 8)));
 	for (let i = 0; i < data.length; i += labelEvery) {
 		const txt = svg('text', {
 			x: xAt(i),
@@ -349,6 +351,213 @@ function compactDuration(seconds: number): string {
 		return `${rounded}h`;
 	}
 	return `${Math.round(seconds / 60)}m`;
+}
+
+export interface ContributionDay {
+	date: Date;
+	value: number;
+}
+
+export function renderContributionHeatmap(
+	parent: HTMLElement,
+	days: ContributionDay[],
+	opts: { formatValue?: (v: number) => string } = {},
+): void {
+	const fmt = opts.formatValue ?? ((v: number) => String(v));
+	const wrap = parent.createDiv({ cls: 'timemd-contribution-wrap' });
+	if (days.length === 0) {
+		wrap.createDiv({ cls: 'timemd-empty-inline', text: 'No trend data' });
+		return;
+	}
+
+	const sorted = [...days].sort((a, b) => a.date.getTime() - b.date.getTime());
+	const first = sorted[0]!;
+	const last = sorted[sorted.length - 1]!;
+	const dataStart = startOfDay(first.date);
+	const dataEnd = startOfDay(last.date);
+	const start = startOfWeek(dataStart);
+	const end = endOfWeek(dataEnd);
+	const totalDays = Math.max(1, daysBetween(start, end) + 1);
+	const weeks = Math.ceil(totalDays / 7);
+	const cell = weeks > 42 ? 10 : 12;
+	const gap = 3;
+	const pad = { l: 34, r: 10, t: 22, b: 8 };
+	const width = pad.l + weeks * (cell + gap) - gap + pad.r;
+	const height = pad.t + 7 * (cell + gap) - gap + pad.b;
+	const max = Math.max(1, ...sorted.map((d) => d.value));
+	const byDate = new Map(sorted.map((d) => [dateKey(d.date), d.value]));
+	const rgb = getHeatmapRgb(parent);
+
+	const root = svg('svg', {
+		width,
+		height,
+		class: 'timemd-chart timemd-contribution-chart',
+		viewBox: `0 0 ${width} ${height}`,
+	});
+	wrap.appendChild(root);
+
+	const daysOfWeek = ['Mon', '', 'Wed', '', 'Fri', '', ''];
+	for (let d = 0; d < 7; d++) {
+		if (!daysOfWeek[d]) continue;
+		const label = svg('text', {
+			x: pad.l - 8,
+			y: pad.t + d * (cell + gap) + cell / 2 + 4,
+			'text-anchor': 'end',
+			class: 'timemd-axis-label',
+		});
+		label.textContent = daysOfWeek[d]!;
+		root.appendChild(label);
+	}
+
+	let lastMonth = -1;
+	for (let i = 0; i < totalDays; i++) {
+		const date = addDays(start, i);
+		const week = Math.floor(i / 7);
+		const dow = mondayIndex(date);
+		const key = dateKey(date);
+		const value = byDate.get(key) ?? 0;
+		const inRange = date >= dataStart && date <= dataEnd;
+		const intensity = value / max;
+		if (date.getDate() <= 7 && date.getMonth() !== lastMonth) {
+			const month = svg('text', {
+				x: pad.l + week * (cell + gap),
+				y: 12,
+				class: 'timemd-axis-label timemd-contribution-month',
+			});
+			month.textContent = date.toLocaleDateString(undefined, { month: 'short' });
+			root.appendChild(month);
+			lastMonth = date.getMonth();
+		}
+		const rect = svg('rect', {
+			x: pad.l + week * (cell + gap),
+			y: pad.t + dow * (cell + gap),
+			width: cell,
+			height: cell,
+			rx: 2,
+			class: inRange ? 'timemd-contribution-cell' : 'timemd-contribution-cell is-outside-range',
+		});
+		rect.setAttribute('fill', inRange ? `rgba(${rgb}, ${0.08 + intensity * 0.92})` : 'transparent');
+		const title = svg('title');
+		title.textContent = `${key} — ${fmt(value)}`;
+		rect.appendChild(title);
+		root.appendChild(rect);
+	}
+}
+
+export function renderDateHourHeatmap(
+	parent: HTMLElement,
+	cells: DateHourCell[],
+	opts: { formatValue?: (v: number) => string; start?: Date; end?: Date } = {},
+): void {
+	const fmt = opts.formatValue ?? ((v: number) => String(v));
+	const wrap = parent.createDiv({ cls: 'timemd-date-hour-wrap' });
+	if (cells.length === 0) {
+		wrap.createDiv({ cls: 'timemd-empty-inline', text: 'No date × hour data' });
+		return;
+	}
+
+	const sorted = [...cells].sort((a, b) => {
+		const byDate = a.date.getTime() - b.date.getTime();
+		return byDate !== 0 ? byDate : a.hour - b.hour;
+	});
+	const first = startOfDay(opts.start ?? sorted[0]!.date);
+	const last = startOfDay(opts.end ?? sorted[sorted.length - 1]!.date);
+	const rowCount = Math.max(1, daysBetween(first, last) + 1);
+	const cellW = rowCount > 120 ? 16 : 20;
+	const cellH = rowCount > 120 ? 9 : rowCount > 45 ? 11 : 16;
+	const gap = 2;
+	const pad = { l: 78, r: 12, t: 28, b: 10 };
+	const width = pad.l + 24 * (cellW + gap) - gap + pad.r;
+	const height = pad.t + rowCount * (cellH + gap) - gap + pad.b;
+	const byKey = new Map<string, number>();
+	for (const cell of sorted) {
+		const key = `${dateKey(cell.date)}-${cell.hour}`;
+		byKey.set(key, (byKey.get(key) ?? 0) + cell.total_seconds);
+	}
+	const max = Math.max(1, ...byKey.values());
+	const rgb = getHeatmapRgb(parent);
+
+	const root = svg('svg', {
+		width,
+		height,
+		class: 'timemd-chart timemd-date-hour-chart',
+		viewBox: `0 0 ${width} ${height}`,
+	});
+	wrap.appendChild(root);
+
+	for (let h = 0; h < 24; h += 3) {
+		const label = svg('text', {
+			x: pad.l + h * (cellW + gap) + cellW / 2,
+			y: 16,
+			'text-anchor': 'middle',
+			class: 'timemd-axis-label',
+		});
+		label.textContent = `${h}:00`;
+		root.appendChild(label);
+	}
+
+	const labelEvery = rowCount <= 45 ? 1 : rowCount <= 120 ? 7 : 30;
+	for (let row = 0; row < rowCount; row++) {
+		const date = addDays(first, row);
+		const dateText = dateKey(date);
+		if (row % labelEvery === 0 || row === rowCount - 1) {
+			const label = svg('text', {
+				x: pad.l - 8,
+				y: pad.t + row * (cellH + gap) + cellH / 2 + 4,
+				'text-anchor': 'end',
+				class: 'timemd-axis-label',
+			});
+			label.textContent = rowCount > 120 ? dateText.slice(5) : dateText;
+			root.appendChild(label);
+		}
+		for (let h = 0; h < 24; h++) {
+			const value = byKey.get(`${dateText}-${h}`) ?? 0;
+			const rect = svg('rect', {
+				x: pad.l + h * (cellW + gap),
+				y: pad.t + row * (cellH + gap),
+				width: cellW,
+				height: cellH,
+				rx: 2,
+				class: 'timemd-date-hour-cell',
+			});
+			rect.setAttribute('fill', `rgba(${rgb}, ${0.06 + (value / max) * 0.94})`);
+			const title = svg('title');
+			title.textContent = `${dateText} ${h}:00 — ${fmt(value)}`;
+			rect.appendChild(title);
+			root.appendChild(rect);
+		}
+	}
+}
+
+function startOfDay(date: Date): Date {
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addDays(date: Date, days: number): Date {
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days);
+}
+
+function daysBetween(start: Date, end: Date): number {
+	return Math.round((startOfDay(end).getTime() - startOfDay(start).getTime()) / 86400000);
+}
+
+function mondayIndex(date: Date): number {
+	return (date.getDay() + 6) % 7;
+}
+
+function startOfWeek(date: Date): Date {
+	return addDays(startOfDay(date), -mondayIndex(date));
+}
+
+function endOfWeek(date: Date): Date {
+	return addDays(startOfWeek(date), 6);
+}
+
+function dateKey(date: Date): string {
+	const y = date.getFullYear();
+	const m = String(date.getMonth() + 1).padStart(2, '0');
+	const d = String(date.getDate()).padStart(2, '0');
+	return `${y}-${m}-${d}`;
 }
 
 export function renderHeatmap(

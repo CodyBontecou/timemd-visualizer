@@ -1,5 +1,5 @@
 import { WorkspaceLeaf } from 'obsidian';
-import { getHeatmapRgb, renderHeatmap } from '../charts';
+import { getHeatmapRgb, renderContributionHeatmap, renderDateHourHeatmap, renderHeatmap } from '../charts';
 import { formatDateISO, formatDuration } from '../utils';
 import { TimeMdBaseView, TimeMdHost } from './base';
 
@@ -22,6 +22,8 @@ export class CalendarView extends TimeMdBaseView {
 		const store = this.host.store;
 		const heatmap = store.getHeatmap();
 		const trend = store.getTrend();
+		const sessions = store.getSessions();
+		const dateHour = store.getDateHourHeatmap();
 
 		if (trend.length > 0) {
 			const total = trend.reduce((sum, t) => sum + t.total_seconds, 0);
@@ -32,6 +34,19 @@ export class CalendarView extends TimeMdBaseView {
 			addStat(statsRow, 'Active days', String(activeDays));
 			addStat(statsRow, 'Daily avg', formatDuration(total / Math.max(1, trend.length)));
 			addStat(statsRow, 'Peak day', `${formatDateISO(peak.date)} · ${formatDuration(peak.total_seconds)}`);
+		}
+
+		const contributionCard = body.createDiv({ cls: 'timemd-card' });
+		contributionCard.createEl('h3', { text: 'Daily contribution heatmap' });
+		if (trend.length === 0) {
+			contributionCard.createDiv({ cls: 'timemd-empty-inline', text: 'No trend data for contribution heatmap.' });
+		} else {
+			renderIntensityLegend(contributionCard);
+			renderContributionHeatmap(
+				contributionCard,
+				trend.map((t) => ({ date: t.date, value: t.total_seconds })),
+				{ formatValue: formatDuration },
+			);
 		}
 
 		const heatCard = body.createDiv({ cls: 'timemd-card' });
@@ -47,6 +62,18 @@ export class CalendarView extends TimeMdBaseView {
 				row[h] = (row[h] ?? 0) + cell.total_seconds;
 			}
 			renderHeatmap(heatCard, grid, { formatValue: formatDuration });
+		}
+
+		const dateHourCard = body.createDiv({ cls: 'timemd-card' });
+		dateHourCard.createEl('h3', { text: 'Date × hour heatmap' });
+		if (sessions.length === 0 || dateHour.length === 0) {
+			dateHourCard.createDiv({ cls: 'timemd-empty-inline', text: 'Date × hour activity requires the Raw Sessions section in your export.' });
+		} else {
+			renderDateHourHeatmap(dateHourCard, dateHour, {
+				formatValue: formatDuration,
+				start: trend[0]?.date,
+				end: trend[trend.length - 1]?.date,
+			});
 		}
 
 		const monthCard = body.createDiv({ cls: 'timemd-card' });

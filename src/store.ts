@@ -6,6 +6,8 @@ import {
 	CategoryRow,
 	ContextSwitchRow,
 	CursorBin,
+	DailyAppTrendRow,
+	DateHourCell,
 	FocusBlockRow,
 	HeatmapCell,
 	IntensityPoint,
@@ -299,6 +301,54 @@ export class DataStore extends Events {
 		return sawNumeric ? numericTotal : fallback;
 	}
 
+	getDateHourHeatmap(): DateHourCell[] {
+		const map = new Map<string, DateHourCell>();
+		for (const session of this.getSessions()) {
+			walkSessionByHour(session, (start, end) => {
+				const dateKey = formatDateISO(start);
+				const hour = clampNumber(start.getHours(), 0, 23);
+				const seconds = Math.max(0, (end.getTime() - start.getTime()) / 1000);
+				if (seconds <= 0) return;
+				const key = `${dateKey}-${hour}`;
+				const cell = map.get(key) ?? {
+					date: dateFromKey(dateKey),
+					hour,
+					total_seconds: 0,
+				};
+				cell.total_seconds += seconds;
+				map.set(key, cell);
+			});
+		}
+		return [...map.values()].sort((a, b) => {
+			const byDate = a.date.getTime() - b.date.getTime();
+			return byDate !== 0 ? byDate : a.hour - b.hour;
+		});
+	}
+
+	getDailyAppTrend(): DailyAppTrendRow[] {
+		const map = new Map<string, DailyAppTrendRow>();
+		for (const session of this.getSessions()) {
+			const appName = session.app_name || 'Unknown';
+			walkSessionByDay(session, (start, end) => {
+				const dateKey = formatDateISO(start);
+				const seconds = Math.max(0, (end.getTime() - start.getTime()) / 1000);
+				if (seconds <= 0) return;
+				const key = `${dateKey}\u0000${appName}`;
+				const row = map.get(key) ?? {
+					date: dateFromKey(dateKey),
+					app_name: appName,
+					total_seconds: 0,
+				};
+				row.total_seconds += seconds;
+				map.set(key, row);
+			});
+		}
+		return [...map.values()].sort((a, b) => {
+			const byDate = a.date.getTime() - b.date.getTime();
+			return byDate !== 0 ? byDate : b.total_seconds - a.total_seconds;
+		});
+	}
+
 	getTotalSeconds(): number {
 		// Prefer the authoritative summary total — recent time.md exporters truncate
 		// the "Top Apps" section to a top-N subset while keeping summary and
@@ -448,8 +498,62 @@ export class DataStore extends Events {
 			if (!start || trendStart < start) start = trendStart;
 			if (!end || trendEnd > end) end = trendEnd;
 		}
+		for (const session of this.getSessions()) {
+			const sessionEnd = normalizedSessionEnd(session);
+			if (!start || session.start_time < start) start = session.start_time;
+			if (!end || sessionEnd > end) end = sessionEnd;
+		}
 		return start && end ? { start, end } : null;
 	}
+}
+
+function walkSessionByHour(session: SessionRow, cb: (start: Date, end: Date) => void): void {
+	walkSession(session, (cursor) => {
+		const next = new Date(cursor);
+		next.setMinutes(0, 0, 0);
+		next.setHours(next.getHours() + 1);
+		return next;
+	}, cb);
+}
+
+function walkSessionByDay(session: SessionRow, cb: (start: Date, end: Date) => void): void {
+	walkSession(session, (cursor) => {
+		const next = new Date(cursor);
+		next.setHours(24, 0, 0, 0);
+		return next;
+	}, cb);
+}
+
+function walkSession(
+	session: SessionRow,
+	nextBoundary: (cursor: Date) => Date,
+	cb: (start: Date, end: Date) => void,
+): void {
+	let cursor = new Date(session.start_time);
+	const end = normalizedSessionEnd(session);
+	let guard = 0;
+	while (cursor < end && guard < 10000) {
+		const boundary = nextBoundary(cursor);
+		const segmentEnd = boundary < end ? boundary : end;
+		if (segmentEnd <= cursor) break;
+		cb(cursor, segmentEnd);
+		cursor = segmentEnd;
+		guard += 1;
+	}
+}
+
+function normalizedSessionEnd(session: SessionRow): Date {
+	if (session.end_time > session.start_time) return session.end_time;
+	return new Date(session.start_time.getTime() + Math.max(0, session.duration_seconds) * 1000);
+}
+
+function dateFromKey(key: string): Date {
+	const [year, month, day] = key.split('-').map((part) => Number(part));
+	return new Date(year ?? 1970, (month ?? 1) - 1, day ?? 1);
+}
+
+function clampNumber(n: number, min: number, max: number): number {
+	return Math.max(min, Math.min(max, n));
 }
 
 function collectFiles(folder: TFolder, out: TFile[]): void {

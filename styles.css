@@ -1655,3 +1655,88 @@
 .timemd-intensity-legend-label:last-child {
 	margin-left: 4px;
 }
+
+.timemd-contribution-wrap,
+.timemd-date-hour-wrap {
+	max-width: 100%;
+	overflow: auto;
+	padding-bottom: 4px;
+}
+
+.timemd-date-hour-wrap {
+	max-height: 560px;
+	border-radius: 6px;
+}
+
+.timemd-contribution-cell,
+.timemd-date-hour-cell {
+	stroke: var(--background-primary);
+	stroke-width: 1;
+	transition: opacity 120ms ease, filter 120ms ease;
+}
+
+.timemd-contribution-cell:hover,
+.timemd-date-hour-cell:hover {
+	filter: brightness(1.16);
+}
+
+.timemd-contribution-cell.is-outside-range {
+	stroke: transparent;
+}
+
+.timemd-contribution-month {
+	font-size: 10px;
+}
+
+.timemd-top-apps-by-day {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	max-height: 520px;
+	overflow: auto;
+}
+
+.timemd-top-app-day-row {
+	display: grid;
+	grid-template-columns: minmax(86px, 110px) minmax(0, 1fr);
+	gap: 10px;
+	align-items: start;
+	padding: 6px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.timemd-top-app-day-row:last-child {
+	border-bottom: 0;
+}
+
+.timemd-top-app-day-date {
+	color: var(--text-muted);
+	font-size: 0.82em;
+	font-variant-numeric: tabular-nums;
+	line-height: 1.8;
+}
+
+.timemd-top-app-day-apps {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	min-width: 0;
+}
+
+.timemd-top-app-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	max-width: 100%;
+	padding: 4px 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 999px;
+	background: var(--background-primary);
+	font-size: 0.82em;
+	color: var(--text-normal);
+}
+
+.timemd-top-app-chip-value {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
