@@ -1,6 +1,6 @@
 # time.md for Obsidian
 
-time.md navigates and visualizes data exported from the [time.md](https://timeprint.app) screen-time analytics app, directly inside Obsidian.
+time.md navigates and visualizes data exported from the [time.md](https://timemd.app) screen-time analytics app, directly inside Obsidian.
 
 Drop any time.md export into a folder in your vault and time.md recreates the core time.md experience — Overview, Trends, Calendar, Details, and Apps & Categories views — without needing to open the app.
 
