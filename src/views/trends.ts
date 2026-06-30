@@ -119,7 +119,11 @@ export class TrendsView extends TimeMdBaseView {
 				chartCard.createDiv({ cls: 'timemd-empty-inline', text: 'By-app trends require the Raw Sessions section in your export.' });
 			} else {
 				renderStackedBarChart(chartCard, rows, { height: totalDays > 120 ? 320 : 300, formatValue: formatDuration, maxLabels: totalDays > 120 ? 12 : 8 });
-				renderLegend(chartCard, rows.flatMap((r) => r.segments.map((s) => s.label)));
+				const legendLabels: string[] = [];
+				for (const row of rows) {
+					for (const segment of row.segments) legendLabels.push(segment.label);
+				}
+				renderLegend(chartCard, legendLabels);
 			}
 		} else if (effectiveMode === 'hourly') {
 			chartCard.createEl('h3', { text: 'Hourly usage' });

@@ -9,7 +9,7 @@ export function parseReport(path: string, content: string): Report {
 	if (ext === 'json') return parseJson(content, path);
 	if (ext === 'csv') return parseCsv(content, path);
 	if (ext === 'md' || ext === 'markdown') {
-		if (content.trimStart().startsWith('---')) return parseObsidian(content, path);
+		if (/^\s*---/.test(content)) return parseObsidian(content, path);
 		return parseMarkdown(content, path);
 	}
 	throw new Error(`Unsupported file type for ${path}`);

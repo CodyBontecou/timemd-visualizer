@@ -30,6 +30,10 @@ export class TimeMdSettingTab extends PluginSettingTab {
 	}
 
 	display(): void {
+		this.renderSettings();
+	}
+
+	private renderSettings(): void {
 		const { containerEl } = this;
 		containerEl.empty();
 
@@ -96,7 +100,7 @@ export class TimeMdSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 						this.plugin.applyColorVars();
 						this.plugin.refreshAllViews();
-						this.display();
+						this.renderSettings();
 					}),
 			);
 
@@ -121,7 +125,7 @@ export class TimeMdSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 						this.plugin.applyColorVars();
 						this.plugin.refreshAllViews();
-						this.display();
+						this.renderSettings();
 					}),
 			);
 

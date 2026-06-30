@@ -1,10 +1,14 @@
 import { AppTransitionRow, DateHourCell } from './types';
+import { pad2 } from './utils';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function svg(tag: string, attrs: Record<string, string | number> = {}): SVGElement {
 	const el = activeDocument.createElementNS(SVG_NS, tag);
-	for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+	for (const key of Object.keys(attrs)) {
+		const value = attrs[key];
+		if (value !== undefined) el.setAttribute(key, String(value));
+	}
 	return el;
 }
 
@@ -866,8 +870,8 @@ function endOfWeek(date: Date): Date {
 
 function dateKey(date: Date): string {
 	const y = date.getFullYear();
-	const m = String(date.getMonth() + 1).padStart(2, '0');
-	const d = String(date.getDate()).padStart(2, '0');
+	const m = pad2(date.getMonth() + 1);
+	const d = pad2(date.getDate());
 	return `${y}-${m}-${d}`;
 }
 
@@ -886,7 +890,10 @@ export function renderHeatmap(
 	const root = svg('svg', { width, height, class: 'timemd-chart timemd-heatmap', viewBox: `0 0 ${width} ${height}` });
 	parent.appendChild(root);
 
-	const max = Math.max(1, ...grid.flat());
+	let max = 1;
+	for (const row of grid) {
+		for (const value of row) max = Math.max(max, value);
+	}
 	const rgb = getHeatmapRgb(parent);
 
 	for (let d = 0; d < 7; d++) {
@@ -1020,7 +1027,10 @@ export function renderAppHourHeatmap(
 	const pad = { l: 134, r: 12, t: 30, b: 8 };
 	const width = pad.l + 24 * (cellW + gap) - gap + pad.r;
 	const height = pad.t + visibleRows.length * (cellH + gap) - gap + pad.b;
-	const max = Math.max(1, ...visibleRows.flatMap((row) => row.hours));
+	let max = 1;
+	for (const row of visibleRows) {
+		for (const value of row.hours) max = Math.max(max, value);
+	}
 	const root = svg('svg', {
 		width,
 		height,

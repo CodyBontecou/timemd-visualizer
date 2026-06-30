@@ -101,7 +101,13 @@ export class DataStore extends Events {
 	}
 
 	allSections(name: ReportSection['name']): ReportSection[] {
-		return this.reports.flatMap((r) => r.sections.filter((s) => s.name === name));
+		const sections: ReportSection[] = [];
+		for (const report of this.reports) {
+			for (const section of report.sections) {
+				if (section.name === name) sections.push(section);
+			}
+		}
+		return sections;
 	}
 
 	getApps(): AppRow[] {

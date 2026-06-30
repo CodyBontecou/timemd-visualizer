@@ -1,7 +1,7 @@
 import { Notice, WorkspaceLeaf } from 'obsidian';
 import { DataStore } from '../store';
 import { AppRow, CategoryRow, PeriodComparisonMetrics, TrendPoint } from '../types';
-import { formatDateISO, formatDuration } from '../utils';
+import { formatDateISO, formatDuration, pad2 } from '../utils';
 import { TimeMdBaseView, TimeMdHost } from './base';
 
 export const VIEW_TYPE_REPORTS = 'timemd-reports';
@@ -456,7 +456,7 @@ function renderTable(parent: HTMLElement, groupBy: ReportsGroupBy, rows: ReportR
 		const tbody = table.createEl('tbody');
 		for (const r of sorted) {
 			const tr = tbody.createEl('tr');
-			tr.createEl('td', { cls: 'timemd-reports-num', text: String(r.rank).padStart(2, '0') });
+			tr.createEl('td', { cls: 'timemd-reports-num', text: pad2(r.rank) });
 			tr.createEl('td', { text: r.label });
 			tr.createEl('td', { cls: 'timemd-reports-num', text: formatDuration(r.totalSeconds) });
 			if (showSessions) {
@@ -604,7 +604,10 @@ function formatRangeUpper(start: Date, end: Date): string {
 
 function svgEl(tag: string, attrs: Record<string, string | number> = {}): SVGElement {
 	const el = activeDocument.createElementNS(SVG_NS, tag);
-	for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+	for (const key of Object.keys(attrs)) {
+		const value = attrs[key];
+		if (value !== undefined) el.setAttribute(key, String(value));
+	}
 	return el;
 }
 

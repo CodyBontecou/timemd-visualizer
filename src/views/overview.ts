@@ -87,7 +87,11 @@ export class OverviewView extends TimeMdBaseView {
 			{ formatValue: formatDuration, showPercent: true },
 		);
 
-		const webStats = collectWebStats(store.allSections('browsing_history').flatMap((s) => s.rows));
+		const browsingRows: Row[] = [];
+		for (const section of store.allSections('browsing_history')) {
+			browsingRows.push(...section.rows);
+		}
+		const webStats = collectWebStats(browsingRows);
 		if (webStats.totalVisits > 0) {
 			const webCard = body.createDiv({ cls: 'timemd-card' });
 			webCard.createEl('h3', { text: 'Web history overview' });

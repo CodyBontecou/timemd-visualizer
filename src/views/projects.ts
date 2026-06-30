@@ -62,7 +62,10 @@ function formatRangeSubtitle(range: { start: Date; end: Date } | null): string {
 
 function svgEl(tag: string, attrs: Record<string, string | number> = {}): SVGElement {
 	const el = activeDocument.createElementNS(SVG_NS, tag);
-	for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+	for (const key of Object.keys(attrs)) {
+		const value = attrs[key];
+		if (value !== undefined) el.setAttribute(key, String(value));
+	}
 	return el;
 }
 
@@ -298,7 +301,7 @@ function renderProjectsContent(
 			void caret;
 
 			const dot = headerRow.createSpan({ cls: 'timemd-projects-dot' });
-			(dot as HTMLElement).style.background = colorFor(cat.category);
+			dot.style.background = colorFor(cat.category);
 
 			const folder = headerRow.createSpan({
 				cls: 'timemd-projects-folder',
@@ -321,8 +324,8 @@ function renderProjectsContent(
 
 			const track = headerRow.createDiv({ cls: 'timemd-projects-bar-track' });
 			const fill = track.createDiv({ cls: 'timemd-projects-bar-fill' });
-			(fill as HTMLElement).style.width = `${Math.round((cat.total_seconds / maxSeconds) * 100)}%`;
-			(fill as HTMLElement).style.background = colorFor(cat.category);
+			fill.style.width = `${Math.round((cat.total_seconds / maxSeconds) * 100)}%`;
+			fill.style.background = colorFor(cat.category);
 
 			headerRow.createSpan({
 				cls: 'timemd-projects-time',
@@ -410,7 +413,7 @@ function renderDistributionCards(
 		for (const cat of categories) {
 			const item = legend.createDiv({ cls: 'timemd-projects-legend-item' });
 			const dot = item.createSpan({ cls: 'timemd-projects-dot' });
-			(dot as HTMLElement).style.background = colorFor(cat.category);
+			dot.style.background = colorFor(cat.category);
 			item.createSpan({
 				cls: 'timemd-projects-legend-name',
 				text: cat.category,

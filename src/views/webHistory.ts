@@ -2,7 +2,7 @@ import { WorkspaceLeaf } from 'obsidian';
 import { renderBarList } from '../charts';
 import { DataStore } from '../store';
 import { Row, TopDomainRow } from '../types';
-import { formatDateISO, formatDuration, parseDate } from '../utils';
+import { formatDateISO, formatDuration, pad2, parseDate } from '../utils';
 import { TimeMdBaseView, TimeMdHost } from './base';
 
 export const VIEW_TYPE_WEB_HISTORY = 'timemd-web-history';
@@ -458,9 +458,7 @@ function formatDayHeader(d: Date): string {
 }
 
 function formatHHMM(d: Date): string {
-	const h = String(d.getHours()).padStart(2, '0');
-	const m = String(d.getMinutes()).padStart(2, '0');
-	return `${h}:${m}`;
+	return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
 function slug(s: string): string {
@@ -521,13 +519,13 @@ function renderDomainTiles(parent: HTMLElement, domains: DomainRow[]): void {
 		text: 'Tiles are sized by known duration when present, with visits as fallback.',
 	});
 
-	const maxWeight = Math.max(1, ...domains.map(domainWeight));
+	let maxWeight = 1;
+	for (const domain of domains) maxWeight = Math.max(maxWeight, domainWeight(domain));
 	const tiles = section.createDiv({ cls: 'timemd-history-domain-tiles' });
 	for (const domain of domains) {
 		const weight = domainWeight(domain);
 		const span = Math.max(1, Math.min(4, Math.ceil(Math.sqrt(weight / maxWeight) * 4)));
 		const tile = tiles.createDiv({ cls: `timemd-history-domain-tile timemd-history-domain-tile-${span}` });
-		tile.style.gridColumn = `span ${span}`;
 		tile.setAttr(
 			'title',
 			`${domain.domain} · ${domain.visit_count} visit${domain.visit_count === 1 ? '' : 's'} · ${formatKnownDuration(domain.total_duration_seconds)}`,

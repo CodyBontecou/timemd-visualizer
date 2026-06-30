@@ -27,10 +27,15 @@ export function parseDate(value: unknown): Date | undefined {
 	return Number.isNaN(d.getTime()) ? undefined : d;
 }
 
+export function pad2(value: number): string {
+	const whole = Math.trunc(value);
+	return whole >= 0 && whole < 10 ? `0${whole}` : `${whole}`;
+}
+
 export function formatDateISO(d: Date): string {
 	const y = d.getFullYear();
-	const m = String(d.getMonth() + 1).padStart(2, '0');
-	const day = String(d.getDate()).padStart(2, '0');
+	const m = pad2(d.getMonth() + 1);
+	const day = pad2(d.getDate());
 	return `${y}-${m}-${day}`;
 }
 
@@ -115,8 +120,7 @@ function parseFilterString(filters: string): Map<string, string> {
 }
 
 function stringifyRowValue(value: unknown): string {
-	if (typeof value === 'boolean' || typeof value === 'bigint') return `${value}`;
-	if (typeof value === 'symbol') return value.description ?? '';
+	if (typeof value === 'boolean' || typeof value === 'bigint' || typeof value === 'symbol') return String(value);
 	if (value instanceof Date) return value.toISOString();
 	return JSON.stringify(value) ?? '';
 }

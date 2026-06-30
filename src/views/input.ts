@@ -2,7 +2,7 @@ import { WorkspaceLeaf } from 'obsidian';
 import { heatmapFill, renderBarList, renderLineChart } from '../charts';
 import { DataStore } from '../store';
 import { CursorBin, IntensityPoint, RawKeystroke, RawMouseEvent, TypedKeyRow, TypedWordRow } from '../types';
-import { formatDateISO } from '../utils';
+import { formatDateISO, pad2 } from '../utils';
 import { TimeMdBaseView, TimeMdHost } from './base';
 
 export const VIEW_TYPE_INPUT = 'timemd-input';
@@ -617,9 +617,7 @@ function addStat(row: HTMLElement, label: string, value: string): void {
 }
 
 function formatTime(d: Date): string {
-	const h = String(d.getHours()).padStart(2, '0');
-	const m = String(d.getMinutes()).padStart(2, '0');
-	return `${h}:${m}`;
+	return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
 function isSingleDay(dates: Date[]): boolean {

@@ -45,37 +45,18 @@ export function parseCsv(content: string, path: string): Report {
 	};
 
 	for (const rawLine of lines) {
-		const line = rawLine.trimEnd();
-		if (!line.trim()) continue;
+		const line = trimRight(rawLine);
+		if (isBlank(line)) continue;
 
 		if (line.startsWith('#')) {
-			for (const [re, key] of COMMENT_META) {
-				const m = line.match(re);
-				if (m && m[1]) {
-					const value = m[1].trim();
-					if (key === 'generatedAt') metadata.generatedAt = parseDate(value);
-					else if (key === 'dateRange') {
-						const range = parseDateRangeText(value);
-						metadata.dateRangeStart = range.start ?? metadata.dateRangeStart;
-						metadata.dateRangeEnd = range.end ?? metadata.dateRangeEnd;
-					} else if (key === 'dateRangeStart') metadata.dateRangeStart = parseDate(value);
-					else if (key === 'dateRangeEnd') metadata.dateRangeEnd = parseDate(value);
-					else if (key === 'title') metadata.title = value;
-					else if (key === 'destination') metadata.destination = value;
-					else if (key === 'filters') metadata.filters = value;
-					else if (key === 'granularity') metadata.granularity = value;
-					else if (key === 'timezone') metadata.timezone = value;
-					else if (key === 'schemaVersion') metadata.schemaVersion = value;
-					break;
-				}
-			}
+			applyCommentMetadata(line, metadata);
 			continue;
 		}
 
-		const sectionMatch = line.match(/^\[(.+)\]$/);
-		if (sectionMatch && sectionMatch[1]) {
+		const sectionName = parseSectionName(line);
+		if (sectionName) {
 			flush();
-			current = { name: sectionMatch[1].trim(), headers: null, rows: [] };
+			current = { name: sectionName, headers: null, rows: [] };
 			continue;
 		}
 
@@ -127,6 +108,47 @@ function parseCsvLine(line: string): string[] {
 	}
 	out.push(cur);
 	return out.map((s) => s.trim());
+}
+
+function applyCommentMetadata(line: string, metadata: ReportMetadata): void {
+	for (const [re, key] of COMMENT_META) {
+		const value = matchFirstGroup(line, re);
+		if (value === null) continue;
+		if (key === 'generatedAt') metadata.generatedAt = parseDate(value);
+		else if (key === 'dateRange') {
+			const range = parseDateRangeText(value);
+			metadata.dateRangeStart = range.start ?? metadata.dateRangeStart;
+			metadata.dateRangeEnd = range.end ?? metadata.dateRangeEnd;
+		} else if (key === 'dateRangeStart') metadata.dateRangeStart = parseDate(value);
+		else if (key === 'dateRangeEnd') metadata.dateRangeEnd = parseDate(value);
+		else if (key === 'title') metadata.title = value;
+		else if (key === 'destination') metadata.destination = value;
+		else if (key === 'filters') metadata.filters = value;
+		else if (key === 'granularity') metadata.granularity = value;
+		else if (key === 'timezone') metadata.timezone = value;
+		else if (key === 'schemaVersion') metadata.schemaVersion = value;
+		return;
+	}
+}
+
+function matchFirstGroup(line: string, re: RegExp): string | null {
+	const match = re.exec(line);
+	const value = match?.[1];
+	return value ? value.trim() : null;
+}
+
+function parseSectionName(line: string): string | null {
+	const match = /^\[(.+)\]$/.exec(line);
+	const name = match?.[1];
+	return name ? name.trim() : null;
+}
+
+function trimRight(value: string): string {
+	return value.replace(/\s+$/, '');
+}
+
+function isBlank(value: string): boolean {
+	return /^\s*$/.test(value);
 }
 
 function basename(path: string): string {

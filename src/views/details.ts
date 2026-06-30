@@ -1,7 +1,7 @@
 import { WorkspaceLeaf } from 'obsidian';
 import { colorForLabel, renderTransitionSankey, renderVerticalBarChart } from '../charts';
 import { AppTransitionRow, ContextSwitchRow, SessionRow } from '../types';
-import { formatDateISO, formatDuration } from '../utils';
+import { formatDateISO, formatDuration, pad2 } from '../utils';
 import { TimeMdBaseView, TimeMdHost } from './base';
 
 export const VIEW_TYPE_DETAILS = 'timemd-details';
@@ -349,9 +349,16 @@ function renderSessionWaterfall(parent: HTMLElement, sessions: SessionRow[]): vo
 		parent.createDiv({ cls: 'timemd-empty-inline', text: 'No sessions.' });
 		return;
 	}
-	const shownSessions = groups.flatMap((group) => group.sessions);
-	const omitted = groups.reduce((sum, group) => sum + group.omittedSessions, 0);
-	const maxDuration = Math.max(1, ...shownSessions.map((session) => session.duration_seconds));
+	const shownSessions: SessionRow[] = [];
+	let omitted = 0;
+	let maxDuration = 1;
+	for (const group of groups) {
+		omitted += group.omittedSessions;
+		for (const session of group.sessions) {
+			shownSessions.push(session);
+			maxDuration = Math.max(maxDuration, session.duration_seconds);
+		}
+	}
 	const wrap = parent.createDiv({ cls: 'timemd-session-waterfall' });
 	for (const group of groups) {
 		const section = wrap.createDiv({ cls: 'timemd-waterfall-day' });
@@ -418,7 +425,7 @@ function renderContextSwitchChart(parent: HTMLElement, rows: ContextSwitchRow[])
 		parent.createDiv({ cls: 'timemd-empty-inline', text: 'No context switch data in the loaded exports.' });
 		return;
 	}
-	const byHour = Array.from({ length: 24 }, (_, hour) => ({ label: `${String(hour).padStart(2, '0')}:00`, value: 0 }));
+	const byHour = Array.from({ length: 24 }, (_, hour) => ({ label: `${pad2(hour)}:00`, value: 0 }));
 	const days = new Set<string>();
 	for (const row of rows) {
 		if (row.hour < 0 || row.hour > 23) continue;

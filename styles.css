@@ -1066,15 +1066,22 @@
 }
 
 .timemd-history-domain-tile-1 {
+	grid-column: span 1;
 	min-height: 96px;
 }
 
 .timemd-history-domain-tile-2 {
+	grid-column: span 2;
 	min-height: 112px;
 }
 
-.timemd-history-domain-tile-3,
+.timemd-history-domain-tile-3 {
+	grid-column: span 3;
+	min-height: 132px;
+}
+
 .timemd-history-domain-tile-4 {
+	grid-column: span 4;
 	min-height: 132px;
 }
 
@@ -1165,8 +1172,8 @@
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 
-	.timemd-history-domain-tile {
-		grid-column: span 2 !important;
+	.timemd-history-domain-tiles .timemd-history-domain-tile {
+		grid-column: span 2;
 	}
 }
 
