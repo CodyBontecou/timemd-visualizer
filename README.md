@@ -1,12 +1,12 @@
-# timemd-visualizor for Obsidian
+# time.md for Obsidian
 
-timemd-visualizor navigates and visualizes data exported from the [time.md](https://timeprint.app) screen-time analytics app, directly inside Obsidian.
+time.md navigates and visualizes data exported from the [time.md](https://timeprint.app) screen-time analytics app, directly inside Obsidian.
 
-Drop any time.md export into a folder in your vault and timemd-visualizor recreates the core time.md experience — Overview, Trends, Calendar, Details, and Apps & Categories views — without needing to open the app.
+Drop any time.md export into a folder in your vault and time.md recreates the core time.md experience — Overview, Trends, Calendar, Details, and Apps & Categories views — without needing to open the app.
 
 ## Supported import formats
 
-timemd-visualizor auto-detects and parses every format time.md can export:
+time.md auto-detects and parses every format time.md can export:
 
 - **JSON** (`.json`) — nested or flat
 - **CSV** (`.csv`) — with or without metadata comments and section markers
@@ -27,7 +27,7 @@ timemd-visualizor auto-detects and parses every format time.md can export:
 | Reports | Daily / weekday breakdowns, period comparison, distribution charts, and CSV / JSON / Markdown export |
 | Input Tracking | Cursor heatmap, typing intensity, top words / keys, per-app clicks (opt-in in time.md) |
 
-Open any view from the command palette (`timemd-visualizor: Open Overview`, etc.) or the ribbon icon.
+Open any view from the command palette (`time.md: Open Overview`, etc.) or the ribbon icon.
 
 ## Visualization gallery
 
@@ -108,8 +108,8 @@ If you've enabled **Input Tracking** in the time.md app (Settings → Input Trac
                 Raw Mouse Events (optional)
    ```
 
-3. Save the file into the folder you've configured under **Settings → timemd-visualizor → Export folder**.
-4. Run **timemd-visualizor: Open Input Tracking** from the command palette (or click the keyboard ribbon icon).
+3. Save the file into the folder you've configured under **Settings → time.md → Export folder**.
+4. Run **time.md: Open Input Tracking** from the command palette (or click the keyboard ribbon icon).
 
 A minimal JSON export the view can render looks like:
 
@@ -301,8 +301,8 @@ A complete sample note that wires every input component together lives at
 1. Install the plugin (see "Manually installing" below while it's pre-release).
 2. Export data from the time.md app using any supported format.
 3. Place the exported file(s) inside a folder in your Obsidian vault.
-4. Point the plugin at that folder in Settings → timemd-visualizor → Export folder.
-5. Run **timemd-visualizor: Open Overview** from the command palette.
+4. Point the plugin at that folder in Settings → time.md → Export folder.
+5. Run **time.md: Open Overview** from the command palette.
 
 ## Manually installing (pre-release)
 

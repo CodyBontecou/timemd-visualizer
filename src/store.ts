@@ -52,7 +52,7 @@ export class DataStore extends Events {
 		this.lastError = null;
 
 		if (!folderPath) {
-			this.lastError = 'No export folder configured. Set one in Settings → timemd-visualizor.';
+			this.lastError = 'No export folder configured. Set one in Settings → time.md.';
 			this.trigger('changed');
 			return;
 		}
@@ -73,7 +73,7 @@ export class DataStore extends Events {
 				const mb = (file.stat.size / 1024 / 1024).toFixed(1);
 				const reason = `skipped — ${mb} MB exceeds the 50 MB cap. Re-export with tighter filters or drop the Raw Sessions / Web History sections.`;
 				this.skippedFiles.push({ path: file.path, reason });
-				console.warn(`[timemd-visualizor] ${file.path}: ${reason}`);
+				console.warn(`[time.md] ${file.path}: ${reason}`);
 				continue;
 			}
 			try {
@@ -81,7 +81,7 @@ export class DataStore extends Events {
 				const report = parseReport(file.path, content);
 				this.reports.push(report);
 			} catch (err) {
-				console.warn(`[timemd-visualizor] Failed to parse ${file.path}`, err);
+				console.warn(`[time.md] Failed to parse ${file.path}`, err);
 				this.skippedFiles.push({ path: file.path, reason: `parse error: ${String(err)}` });
 			}
 		}
@@ -92,7 +92,7 @@ export class DataStore extends Events {
 		}
 		const parts = [`loaded ${this.reports.length}`];
 		if (this.skippedFiles.length > 0) parts.push(`skipped ${this.skippedFiles.length}`);
-		new Notice(`timemd-visualizor: ${parts.join(', ')}`);
+		new Notice(`time.md: ${parts.join(', ')}`);
 		this.trigger('changed');
 	}
 

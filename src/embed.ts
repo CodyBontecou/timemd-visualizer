@@ -293,7 +293,7 @@ function renderEmbedInner(el: HTMLElement, store: DataStore, params: BlockParams
 			cls: 'timemd-embed-empty',
 			text:
 				store.lastError ??
-				'timemd-visualizor: no exports loaded. Set the export folder in plugin settings and click Reload.',
+				'time.md: no exports loaded. Set the export folder in plugin settings and click Reload.',
 		});
 		return;
 	}

@@ -10,7 +10,7 @@ below is rendered in place by the plugin and updates whenever you reload
 exports.
 
 > Drop this file into your vault next to a time.md export folder, and make
-> sure **Settings → timemd-visualizor → Export folder** points at the folder
+> sure **Settings → time.md → Export folder** points at the folder
 > containing your input-tracking export (e.g. the synthetic
 > `tests/fixtures/input-tracking-sample.json` works out of the box).
 
@@ -103,7 +103,7 @@ bare: true
 
 ## See also
 
-- Run **timemd-visualizor: Open Input Tracking** from the command palette for the
+- Run **time.md: Open Input Tracking** from the command palette for the
   full, multi-card dashboard.
 - The same data feeds the desktop app — see time.md → Insights → Input
   Tracking.
